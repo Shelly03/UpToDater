@@ -1,3 +1,4 @@
+import json
 import subprocess
 import pandas
 
@@ -17,9 +18,39 @@ class up_to_dater:
             df.loc[len(df)] = (line)
         return df
     
-    def upgrade_all():
+    def upgrade_all(self):
         info = subprocess.check_output(['winget', 'upgrade', '--all'])
+        
+    def get_jason_upgrades(self, upgrades_df):
+        programs = [{'PackageIdentifier' : program_id} for program_id in upgrades_df['id']]
+        
+        import_file = {
+        "$schema" : "https://aka.ms/winget-packages.schema.2.0.json",
+	    "CreationDate" : "2023-03-25T21:45:24.637-00:00",
+	    "Sources" : 
+	        [
+                {
+                "Packages" : 
+                    [
+                        programs
+                    ], 
+                "SourceDetails" : 
+		        {
+				"Argument" : "https://cdn.winget.microsoft.com/cache",
+				"Identifier" : "Microsoft.Winget.Source_8wekyb3d8bbwe",
+				"Name" : "winget",
+				"Type" : "Microsoft.PreIndexed.Package"
+			    }
+                }
+                
+            ],
+        "WinGetVersion" : "1.4.10173"
+        }
+    
+        with open("import.json", "w") as outfile:
+            json.dump(import_file, outfile)
+        
 
 
 server =  up_to_dater()
-print(server.get_update_info())
+server.get_jason_upgrades(server.get_update_info())
