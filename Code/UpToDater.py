@@ -1,6 +1,7 @@
 import json
 import subprocess
 import pandas
+import snmp
 
 class up_to_dater:
     
@@ -53,4 +54,4 @@ class up_to_dater:
 
 
 server =  up_to_dater()
-server.get_jason_upgrades(server.get_update_info())
+print(server.get_update_info())
