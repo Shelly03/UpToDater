@@ -4,7 +4,7 @@ import sqlite3
 import os
 
 IP = '127.0.0.1'
-PORT = 65432       v/-=6c
+PORT = 65432      
 
 class server:
     def init_server(self):
