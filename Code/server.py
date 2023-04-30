@@ -43,13 +43,11 @@ class server:
             if existing_client:
                 # If the client's IP address is already in the database, update the row to indicate that the connection is on
                 cursor.execute(f"UPDATE {self.table_name} SET connection_status=? WHERE ip_address=?", ('on', client_address[0]))
+                print(client_address[0])
             else:
                 # If the client's IP address is not in the database, insert a new row to indicate that the connection is on
                 cursor.execute(f"INSERT INTO {self.table_name} (ip_address, connection_status) VALUES (?, ?)", (client_address[0], 'on'))
             conn.commit()
-
-            # Send a welcome message to the client
-            client_socket.sendall(b'Welcome to the server!')
 
             # Loop to receive and send data to/from the client
             while True:
@@ -68,6 +66,7 @@ class server:
             client_socket.close()
             # Close the database connection
             conn.close()
+        print('here')
             
     def add_ip_to_db(self, addr):
         db_con = sqlite3.connect("ipconections.db")
@@ -83,9 +82,9 @@ class server:
             conn, addr = self.socket.accept()
             thread = threading.Thread(target= self.handle_client, args= (conn, addr,))
 
-            
-            #TODO: handle con closing and turning ip from "on" to "off"
             thread.start()
 
-    
+if __name__ == '__main__':
+    server = server()
+    server.run()
 
