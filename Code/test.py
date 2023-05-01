@@ -28,9 +28,7 @@ class ServerGUI(customtkinter.CTk):
         
         #images
         self.comp_icon=customtkinter.CTkImage(Image.open(r"Code\sources\computer_icon.png"))
-        
-        self.grid_rowconfigure((0), weight=1)
-        
+                
         # sidebar
         self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
@@ -54,7 +52,7 @@ class ServerGUI(customtkinter.CTk):
         
         self.appearance_mode_optionemenu.set("Dark")
         self.scaling_optionemenu.set("100%")
-        
+        self.cursor.execute(f"update {self.table_name} set connection_status = 'off' where ip_address = '127.0.0.1'")
         self.computers()
         
     def open_new_window(self, ip):
@@ -71,33 +69,39 @@ class ServerGUI(customtkinter.CTk):
         on_comps = self.cursor.fetchall()
         col = 1
         row = 1
+        txt=1
         for computer in on_comps:
-            button = customtkinter.CTkButton(master=self, text=computer[0], command=lambda: self.open_new_window(computer[0]), image=self.comp_icon)
+            
+            button = customtkinter.CTkButton(master=self, text=txt, command=lambda: self.open_new_window(txt), image=self.comp_icon)
             button.grid(row=row, column=col, padx=(20, 20), pady=(20, 20), sticky="nsew")
             if col >= 5:
                 col = 1
                 row += 1
             else:
                 col += 1
+            txt+=1
 
         self.cursor.execute(f"SELECT ip_address FROM {self.table_name} WHERE connection_status='off';")
         off_comps = self.cursor.fetchall()
         print(off_comps)
+        txt=1
         for computer in off_comps:
-            button = customtkinter.CTkButton(master=self.app, state="disabled", text=computer[0], command=lambda: self.open_new_window(computer[0]), image=self.comp_icon)
+            
+            button = customtkinter.CTkButton(master=self, state="disabled", text=txt, command=lambda: self.open_new_window(txt), image=self.comp_icon)
             button.grid(row=row, column=col, padx=(20, 20), pady=(20, 20), sticky="nsew")
             if col >= 5:
                 col = 1
                 row += 1
             else:
                 col += 1
-                
+            txt+=1
+        self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure((1,2,3,4,5), weight=1)
         
         
-    def change_theme(self, new_appearance_mode: str):
+    def change_theme(self, new_appearance_mode):
         customtkinter.set_appearance_mode(new_appearance_mode)
-    def change_scaling(self, new_scaling: str):
+    def change_scaling(self, new_scaling):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
         customtkinter.set_widget_scaling(new_scaling_float)
     def button_function(self):

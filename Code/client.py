@@ -18,5 +18,6 @@ class client:
         psutil.cpu_percent()
         
 c = client()
-time.sleep(1000)
+time.sleep(10)
+c.disconnect()
 

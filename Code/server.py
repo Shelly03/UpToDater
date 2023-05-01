@@ -4,7 +4,7 @@ import sqlite3
 import os
 
 IP = '127.0.0.1'
-PORT = 65432      
+PORT = 65432
 
 class server:
     def init_server(self):
@@ -49,7 +49,6 @@ class server:
                 cursor.execute(f"INSERT INTO {self.table_name} (ip_address, connection_status) VALUES (?, ?)", (client_address[0], 'on'))
             conn.commit()
 
-            # Loop to receive and send data to/from the client
             while True:
                 if(client_socket.recv(1064).decode() == 'bye'):
                     break
@@ -66,7 +65,6 @@ class server:
             client_socket.close()
             # Close the database connection
             conn.close()
-        print('here')
             
     def add_ip_to_db(self, addr):
         db_con = sqlite3.connect("ipconections.db")
