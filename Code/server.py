@@ -29,43 +29,47 @@ class server:
         self.init_database()
         print('SERVER UP')
 
-
-    def handle_client(self, client_socket, client_address):
+    def update_database_connection(self, client_address):
+        print('updating')
         # Create a new cursor for this thread
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
             
-        try:
-            # Check if the client's IP address is already in the database
-            cursor.execute(f"SELECT * FROM {self.table_name} WHERE ip_address=?", (client_address[0],))
-            existing_client = cursor.fetchone()
+        # Check if the client's IP address is already in the database
+        cursor.execute(f"SELECT * FROM {self.table_name} WHERE ip_address=?", (client_address[0],))
+        existing_client = cursor.fetchone()
 
-            if existing_client:
-                # If the client's IP address is already in the database, update the row to indicate that the connection is on
-                cursor.execute(f"UPDATE {self.table_name} SET connection_status=? WHERE ip_address=?", ('on', client_address[0]))
-                print(client_address[0])
-            else:
-                # If the client's IP address is not in the database, insert a new row to indicate that the connection is on
-                cursor.execute(f"INSERT INTO {self.table_name} (ip_address, connection_status) VALUES (?, ?)", (client_address[0], 'on'))
-            conn.commit()
+        if existing_client:
+            # If the client's IP address is already in the database, update the row to indicate that the connection is on
+            cursor.execute(f"UPDATE {self.table_name} SET connection_status=? WHERE ip_address=?", ('on', client_address[0]))
+            print(client_address[0])
+        else:
+            # If the client's IP address is not in the database, insert a new row to indicate that the connection is on
+            cursor.execute(f"INSERT INTO {self.table_name} (ip_address, connection_status) VALUES (?, ?)", (client_address[0], 'on'))
+        conn.commit()
+        print('updated') 
 
-            while True:
-                if(client_socket.recv(1064).decode() == 'bye'):
-                    break
+    def update_database_disconnection(self, client_address):
+        # Create a new cursor for this thread
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        # Update the row to indicate that the connection is off
+        cursor.execute(f"UPDATE {self.table_name} SET connection_status=? WHERE ip_address=?", ('off', client_address[0]))
+        conn.commit()
+        # Close the database connection
+        conn.close()
+
+    def handle_client(self, client_socket, client_address):
+        self.update_database_connection(client_address)
+
+        while True:
+            if(client_socket.recv(1064).decode() == 'bye'):
+                break
         
-        except Exception as e:
-            print(e)
-            
-        finally:
-            print('finally')
-            # Update the row to indicate that the connection is off
-            cursor.execute(f"UPDATE {self.table_name} SET connection_status=? WHERE ip_address=?", ('off', client_address[0]))
-            conn.commit()
-            # Close the client socket
-            client_socket.close()
-            # Close the database connection
-            conn.close()
-            
+
+        client_socket.close()
+        self.update_database_disconnection(client_address)
+
     def add_ip_to_db(self, addr):
         db_con = sqlite3.connect("ipconections.db")
         db_corsur = db_con.cursor()

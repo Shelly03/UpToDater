@@ -1,112 +1,124 @@
-import sqlite3
-import customtkinter
-import tkinter
-from PIL import Image,ImageTk
+import psutil
+import GPUtil
+import time
+from pysnmp.hlapi import *
+
+'''
+class ComputerInfoSNMP:
+
+    def handle_snmp_request(self, request):
+        if request == 'cpu':
+            return self.get_cpu_usage()
+        elif request == 'gpu':
+            return self.get_gpu_usage()
+        elif request == 'ram':
+            self.get_ram_usage()
+        elif request == 'cpu temp':
+            self.get_cpu_temperature()
+
+
+    def get_cpu_temperature(self):
+        temperature = psutil.sensors_temperatures().get('coretemp')[0].current
+        return temperature
+
+    def get_gpu_temperature(self):
+        # Implement code to retrieve GPU temperature here
+        # This will depend on the specific hardware and drivers being used
+        temperature = 0
+        return temperature
+
+    def get_ram_usage(self):
+        return psutil.cpu_percent(interval=1)
+
+    def get_cpu_usage(self):
+        load1, load5, load15 = psutil.getloadavg()
+        cpu_usage = (load15/psutil.cpu_count()) * 100
+        return cpu_usage
+    
+    def get_gpu_usage(self):
+        return GPUtil.showUtilization()
+
+    
+s = ComputerInfoSNMP()
+print(s.handle_snmp_request('cpu'))
+
+'''
+
+print(psutil.sensors_battery())
+
+'''   
+
+import psutil
+from datetime import datetime
+import pandas as pd
+import time
 import os
 
-customtkinter.set_appearance_mode("System")
-customtkinter.set_default_color_theme("blue")
-        
-class ServerGUI(customtkinter.CTk):
-    
-    def __init__(self, db_name='ipconections.db'):
-        super().__init__()
-        
-        self.title('PROJECT NAME')
-        self.geometry(f"{1100}x{580}")
+def get_processes_info():
+    # the list the contain all process dictionaries
+    processes = []
+    for process in psutil.process_iter():
+    # get all process info in one shot
+        with process.oneshot():
+            # get the process id
+            pid = process.pid
+            if pid == 0:
+                # System Idle Process for Windows NT, useless to see anyways
+                continue
+                # get the name of the file executed
+            name = process.name()
+            # get the time the process was spawned
+            try:
+                create_time = datetime.fromtimestamp(process.create_time())
+            except OSError:
+                # system processes, using boot time instead
+                create_time = datetime.fromtimestamp(psutil.boot_time())
+            try:
+                # get the number of CPU cores that can execute this process
+                cores = len(process.cpu_affinity())
+            except psutil.AccessDenied:
+                cores = 0
+            # get the CPU usage percentage
+            cpu_usage = process.cpu_percent()
+            # get the status of the process (running, idle, etc.)
+            status = process.status()
+            try:
+                # get the process priority (a lower value means a more prioritized process)
+                nice = int(process.nice())
+            except psutil.AccessDenied:
+                nice = 0
+            try:
+                # get the memory usage in bytes
+                memory_usage = process.memory_full_info().uss
+            except psutil.AccessDenied:
+                memory_usage = 0
+            # total process read and written bytes
+            io_counters = process.io_counters()
+            read_bytes = io_counters.read_bytes
+            write_bytes = io_counters.write_bytes
+            n_threads = process.num_threads()
+                        # get the username of user spawned the process
+            try:
+                username = process.username()
+            except psutil.AccessDenied:
+                username = "N/A"
+            processes.append({
+            'pid': pid, 'name': name, 'create_time': create_time,
+            'cores': cores, 'cpu_usage': cpu_usage, 'status': status, 'nice': nice,
+            'memory_usage': memory_usage, 'read_bytes': read_bytes, 'write_bytes': write_bytes,
+            'n_threads': n_threads, 'username': username,
+            })
 
-        #db setup
-        self.db_name = db_name
-        self.table_name = 'ipAddresses'
-        #new conn and corsur
-        self.conn = sqlite3.connect(self.db_name)
-        self.cursor = self.conn.cursor()
-        #create the table is it is not there
-        self.cursor.execute(f'''CREATE TABLE IF NOT EXISTS {self.table_name}
-                            (ip_address text, connection_status text)''')
-        self.conn.commit()
-        
-        #images
-        self.comp_icon=customtkinter.CTkImage(Image.open(r"Code\sources\computer_icon.png"))
-                
-        # sidebar
-        self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
-        self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(4, weight=1)
-        
-        # project name
-        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="project name", font=customtkinter.CTkFont(size=20, weight="bold"))
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
-        
-        #change theme
-        self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="theme:", anchor="w")
-        self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
-        self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["Light", "Dark", "System"], command=self.change_theme)
-        self.appearance_mode_optionemenu.grid(row=6, column=0, padx=20, pady=(10, 10))
-        
-        #add scaling
-        self.scaling_label = customtkinter.CTkLabel(self.sidebar_frame, text="UI Scaling:", anchor="w")
-        self.scaling_label.grid(row=7, column=0, padx=20, pady=(10, 0))
-        self.scaling_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["80%", "90%", "100%", "110%", "120%"],command=self.change_scaling)
-        self.scaling_optionemenu.grid(row=8, column=0, padx=20, pady=(10, 20))
-        
-        self.appearance_mode_optionemenu.set("Dark")
-        self.scaling_optionemenu.set("100%")
-        self.cursor.execute(f"update {self.table_name} set connection_status = 'off' where ip_address = '127.0.0.1'")
-        self.computers()
-        
-    def open_new_window(self, ip):
-        new_window = customtkinter.CTkToplevel(self)
-        new_window.title(f"{ip}")
-        new_window.geometry("300x200")
+    return processes
 
-        # Add your desired widgets to the new window
-        label = customtkinter.CTkLabel(new_window, text=f"info on {ip}")
-        label.pack(padx=20, pady=50)
-        
-    def computers(self):
-        self.cursor.execute(f"SELECT ip_address FROM {self.table_name} WHERE connection_status='on';")
-        on_comps = self.cursor.fetchall()
-        col = 1
-        row = 1
-        txt=1
-        for computer in on_comps:
-            
-            button = customtkinter.CTkButton(master=self, text=txt, command=lambda: self.open_new_window(txt), image=self.comp_icon)
-            button.grid(row=row, column=col, padx=(20, 20), pady=(20, 20), sticky="nsew")
-            if col >= 5:
-                col = 1
-                row += 1
-            else:
-                col += 1
-            txt+=1
+def construct_dataframe(processes):
+    # convert to pandas dataframe
+    df = pd.DataFrame(processes)
+    # set the process id as index of a process
+    df.set_index('pid', inplace=True)
+    # convert to proper date format
+    df['create_time'] = df['create_time'].apply(datetime.strftime, args=("%Y-%m-%d %H:%M:%S",))
+    return df
 
-        self.cursor.execute(f"SELECT ip_address FROM {self.table_name} WHERE connection_status='off';")
-        off_comps = self.cursor.fetchall()
-        print(off_comps)
-        txt=1
-        for computer in off_comps:
-            
-            button = customtkinter.CTkButton(master=self, state="disabled", text=txt, command=lambda: self.open_new_window(txt), image=self.comp_icon)
-            button.grid(row=row, column=col, padx=(20, 20), pady=(20, 20), sticky="nsew")
-            if col >= 5:
-                col = 1
-                row += 1
-            else:
-                col += 1
-            txt+=1
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure((1,2,3,4,5), weight=1)
-        
-        
-    def change_theme(self, new_appearance_mode):
-        customtkinter.set_appearance_mode(new_appearance_mode)
-    def change_scaling(self, new_scaling):
-        new_scaling_float = int(new_scaling.replace("%", "")) / 100
-        customtkinter.set_widget_scaling(new_scaling_float)
-    def button_function(self):
-        print('pressed')
-
-if __name__ == '__main__':
-    app = ServerGUI()
-    app.mainloop()
+print(construct_dataframe(get_processes_info()))
+'''
