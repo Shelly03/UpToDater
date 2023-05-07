@@ -18,7 +18,7 @@ class client:
     def disconnect(self):
         print('disconnect')
         self.socket.send('bye'.encode())
-        self.alert_cpu_thread.
+        # TODO: handle closing the thread
         self.socket.close()
         
 

@@ -7,7 +7,8 @@ import sched
 
 def check_cpu(socket, warning_cpu, alert_cpu, cpu_time_check):
     init_time = time.time()
-    while(True):
+    # TODO: handle closing the thread
+    while True:
         if(time.time() - init_time > cpu_time_check):
             init_time = time.time()
             cpu = get_cpu_usage()
