@@ -9,8 +9,6 @@ customtkinter.set_default_color_theme("blue")
 class ServerGUI(customtkinter.CTk):
     
     def __init__(self, db_name='ipconections.db'):
-        super().__init__()
-        
         self.title('PROJECT NAME')
         self.geometry(f"{1100}x{580}")
 

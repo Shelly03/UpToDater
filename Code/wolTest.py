@@ -1,5 +1,6 @@
 from wakeonlan import send_magic_packet
 
+# TODO: make the packet with scapy
 devices = {
 'my_pc':{'mac':'bc:54:2f:f7:e7:e8','ip_address':'192.168.1.255'}
 }
