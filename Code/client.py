@@ -34,6 +34,7 @@ class client:
             if(time.time() - init_time > CHECK_SECONDS):
                 init_time = time.time()
                 self.check_cpu()
+                # TODO: add mpre checks
     
     def check_cpu(self):
             cpu = snmpServer.get_cpu_usage()

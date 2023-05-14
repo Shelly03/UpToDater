@@ -5,18 +5,6 @@ import threading
 import sched
 
 
-def check_cpu(socket, warning_cpu, alert_cpu, cpu_time_check):
-    init_time = time.time()
-    # TODO: handle closing the thread
-    while True:
-        if(time.time() - init_time > cpu_time_check):
-            init_time = time.time()
-            cpu = get_cpu_usage()
-            if(cpu > alert_cpu):
-                socket.send('alert')
-            elif(cpu > warning_cpu):
-                socket.send('warning')
-
 def get_cpu_usage():
     # return cpu precentage times the number of physical cores
     return psutil.cpu_percent(0.5) / psutil.cpu_count()
