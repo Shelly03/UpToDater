@@ -2,6 +2,7 @@ import socket
 import threading
 import sqlite3
 import os
+from threading import Lock
 
 IP = '127.0.0.1'
 MAIN_PORT = 65432
@@ -10,6 +11,7 @@ ALERT_PORT = 65431
 
 class server:
     def init_server(self):
+        self.lock = Lock()
         self.main_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.main_socket.bind(('0.0.0.0', MAIN_PORT))
         self.main_socket.listen(5)
@@ -38,19 +40,19 @@ class server:
         self.db_con.commit()
 
     def check_alerts(self, sock_conn, sock_addr):
-        conn = sqlite3.connect(self.db_name)
-        cursor = conn.cursor()
-        while True:
-            status = sock_conn.recv(1064).decode()
-            aspect = status.split(':')[0]
-            status = status.split(':')[1]
-            colomn = aspect + '_' + 'status'
-            if status != 'good':
-                cursor.execute(
-                    f"UPDATE {self.table_name} SET {colomn}=? WHERE ip_address=?", (status, sock_addr[0]))
-            else:
-                cursor.execute(
-                    f"UPDATE {self.table_name} SET {colomn}=? WHERE ip_address=?", ('', sock_addr[0]))
+        try:
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            while True:
+                status = sock_conn.recv(1064).decode()
+                aspect = status.split(':')[0]
+                status = status.split(':')[1]
+                colomn = aspect + '_' + 'status'
+                #TODO: ask golan if this is a good way
+                self.database_command(cursor, f"UPDATE {self.table_name} SET {colomn}=? WHERE ip_address=?", (status, sock_addr[0]))
+
+        except:
+            pass
 
     def __init__(self):
         self.init_server()
@@ -70,13 +72,10 @@ class server:
 
         if existing_client:
             # If the client's IP address is already in the database, update the row to indicate that the connection is on
-            cursor.execute(
-                f"UPDATE {self.table_name} SET connection_status=? WHERE ip_address=?", ('on', client_address[0]))
-            print(client_address[0])
+            self.database_command(cursor, f"UPDATE {self.table_name} SET connection_status=? WHERE ip_address=?", ('on', client_address[0]))
         else:
             # If the client's IP address is not in the database, insert a new row to indicate that the connection is on
-            cursor.execute(
-                f"INSERT INTO {self.table_name} (ip_address, connection_status) VALUES (?, ?)", (client_address[0], 'on'))
+            self.database_command(cursor, f"INSERT INTO {self.table_name} (ip_address, connection_status) VALUES (?, ?)", (client_address[0], 'on'))
         conn.commit()
         print('updated')
 
@@ -85,28 +84,28 @@ class server:
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         # Update the row to indicate that the connection is off
-        cursor.execute(
-            f"UPDATE {self.table_name} SET connection_status=? WHERE ip_address=?", ('off', client_address[0]))
+        self.database_command(cursor, f"UPDATE {self.table_name} SET connection_status=? WHERE ip_address=?", ('off', client_address[0]))
         conn.commit()
         # Close the database connection
         conn.close()
 
     def handle_client(self, client_main_socket, client_address):
-        # TODO: add lock
-        self.update_database_connection(client_address)
+        try:
+            self.update_database_connection(client_address)
 
-        while True:
-            if (client_main_socket.recv(1064).decode() == 'bye'):
-                break
-
-        client_main_socket.close()
-        # TODO: add lock
-        self.update_database_disconnection(client_address)
+            while True:
+                if (client_main_socket.recv(1064).decode() == 'bye'):
+                    break
+        except:
+            pass
+        finally:
+            client_main_socket.close()
+            self.update_database_disconnection(client_address)
 
     def add_ip_to_db(self, addr):
         db_con = sqlite3.connect("ipconections.db")
         db_corsur = db_con.cursor()
-        db_corsur.execute(f'''INSERT INTO ipAddresses VALUES (
+        self.database_command(db_corsur, f'''INSERT INTO ipAddresses VALUES (
                 "{addr[0]}", 
                 "on" )''')
         db_con.commit()
@@ -115,14 +114,19 @@ class server:
         while True:
             conn, addr = self.main_socket.accept()
             alert_conn, alert_addr = self.alert_socket.accept()
-            main_client_thread = threading.Thread(target=self.handle_client, args=(conn, addr,))
-            alert_thread = threading.Thread(target= self.check_alerts, args= (alert_conn, alert_addr,))
+            main_client_thread = threading.Thread(
+                target=self.handle_client, args=(conn, addr,))
+            alert_thread = threading.Thread(
+                target=self.check_alerts, args=(alert_conn, alert_addr,))
             print('alert thread on')
 
             main_client_thread.start()
             alert_thread.start()
 
-
+    def database_command(self, cursor, command, args):
+        self.lock.acquire()
+        cursor.execute(command, args)
+        self.lock.release()
 if __name__ == '__main__':
     server = server()
     server.run()
