@@ -49,10 +49,13 @@ class server:
                 status = status.split(':')[1]
                 colomn = aspect + '_' + 'status'
                 #TODO: ask golan if this is a good way
+                print('write1')
                 self.database_command(cursor, f"UPDATE {self.table_name} SET {colomn}=? WHERE ip_address=?", (status, sock_addr[0]))
 
         except:
             pass
+        finally:
+            conn.commit()
 
     def __init__(self):
         self.init_server()
@@ -71,9 +74,11 @@ class server:
         existing_client = cursor.fetchone()
 
         if existing_client:
+            print('update2')
             # If the client's IP address is already in the database, update the row to indicate that the connection is on
             self.database_command(cursor, f"UPDATE {self.table_name} SET connection_status=? WHERE ip_address=?", ('on', client_address[0]))
         else:
+            print('update3')
             # If the client's IP address is not in the database, insert a new row to indicate that the connection is on
             self.database_command(cursor, f"INSERT INTO {self.table_name} (ip_address, connection_status) VALUES (?, ?)", (client_address[0], 'on'))
         conn.commit()
@@ -84,6 +89,7 @@ class server:
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         # Update the row to indicate that the connection is off
+        print('update4')
         self.database_command(cursor, f"UPDATE {self.table_name} SET connection_status=? WHERE ip_address=?", ('off', client_address[0]))
         conn.commit()
         # Close the database connection
@@ -99,12 +105,14 @@ class server:
         except:
             pass
         finally:
+            print('finally')
             client_main_socket.close()
             self.update_database_disconnection(client_address)
 
     def add_ip_to_db(self, addr):
         db_con = sqlite3.connect("ipconections.db")
         db_corsur = db_con.cursor()
+        print('update5')
         self.database_command(db_corsur, f'''INSERT INTO ipAddresses VALUES (
                 "{addr[0]}", 
                 "on" )''')
@@ -127,6 +135,7 @@ class server:
         self.lock.acquire()
         cursor.execute(command, args)
         self.lock.release()
+
 if __name__ == '__main__':
     server = server()
     server.run()
