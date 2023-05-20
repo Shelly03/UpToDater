@@ -1,7 +1,5 @@
 import psutil
-import GPUtil
 import time
-from pysnmp.hlapi import *
 
 '''
 class ComputerInfoSNMP:
@@ -44,7 +42,8 @@ print(s.handle_snmp_request('cpu'))
 
 '''
 
-print(psutil.sensors_battery())
+lst = {'a' :1,'b':2, 'c':3}
+print(lst[])
 
 '''   
 
