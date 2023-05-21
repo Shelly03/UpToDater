@@ -8,13 +8,8 @@ IP = "127.0.0.1"
 MAIN_PORT = 65432
 ALERT_PORT = 65431
 
-THRED_ALIVE = True
-
 CHECK_SECONDS = 5
-
-MAX_CPU = 0.9
-WARN_CPU = 0.7
-
+THREAD_ALIVE = True
 
 class client:
     def __init__(self):
@@ -24,43 +19,39 @@ class client:
             try:
                 self.main_socket.connect((IP, MAIN_PORT))
                 connection_established = True
-            except:
-                print("here")
+            except Exception as e:
+                print(e)
 
-        self.alert_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.alert_socket.connect((IP, ALERT_PORT))
+        self.info_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.info_socket.connect((IP, ALERT_PORT))
 
-        THRED_ALIVE = True
-        self.alert_cpu_thread = threading.Thread(target=self.check_alerts)
-        self.alert_cpu_thread.start()
-        print("thread up")
+        self.info_thread = threading.Thread(target=self.send_info)
+        global THREAD_ALIVE
+        THREAD_ALIVE = True
+        self.info_thread.start()
 
-    def check_alerts(self):
+    def send_info(self):
         init_time = time.time()
-        while THRED_ALIVE:
+        while THREAD_ALIVE:
             if time.time() - init_time > CHECK_SECONDS:
-                init_time = time.time()
-                self.check_cpu()
-                # TODO: add mpre checks
-        return
+                check_time = str(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())).strip()
+                cpu = str(snmpServer.get_cpu_usage()).strip() #TODO: fix cpu
+                mem = str(snmpServer.get_virtual_mem()).strip()
+                temp = str(0) #TODO: work on getting comp temp
+                msg = str(', '.join([IP, cpu, temp, mem, check_time]))
+                self.info_socket.send(msg.encode())
 
-    def check_cpu(self):
-        cpu = snmpServer.get_cpu_usage()
-        print(cpu)
-        if cpu > MAX_CPU:
-            self.alert_socket.send("cpu:alert".encode())
-        elif cpu > WARN_CPU:
-            self.alert_socket.send("cpu:warning".encode())
-        else:
-            self.alert_socket.send("cpu:good".encode())
+                init_time = time.time()
+
 
     def disconnect(self):
         print("disconnect")
         self.main_socket.send("bye".encode())
-        THRED_ALIVE = False
+        global THREAD_ALIVE
+        THREAD_ALIVE = False
         self.main_socket.close()
 
 
 c = client()
-time.sleep(30)
+time.sleep(10)
 c.disconnect()
