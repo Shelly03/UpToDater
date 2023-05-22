@@ -84,25 +84,18 @@ def get_users_info():
         return psutil.users()
         
 
-for i in range(100):
-    print(get_cpu_usage())
-'''
-import os
-import sys
+
 import wmi
 
-def get_cpu_temperature():
-    w = wmi.WMI(namespace="root\\WMI")
-    temperature = w.MSAcpi_ThermalZoneTemperature()[0].CurrentTemperature / 10.0 - 273.15
-    return temperature
+w = wmi.WMI(namespace="root\OpenHardwareMonitor", privileges=["Security"])
+temperature_infos = w.Sensor()
+print(temperature_infos)
+for sensor in temperature_infos:
+    if sensor.SensorType == 'Temperature':
+        print(sensor.Name)
+        print(sensor.Value)
 
-temperature = get_cpu_temperature()
-print(temperature)
 
-
-w = wmi.WMI(namespace="root\wmi")
-temperature_info = w.MSAcpi_ThermalZoneTemperature()[0]
-print (temperature_info.CurrentTemperature)'''
 
 
 '''import clr

@@ -7,11 +7,11 @@ from threading import Lock
 MAIN_PORT = 65432
 ALERT_PORT = 65431
 
-#TODO: ask what params to check in alerts, time between checks and if puting status in db is a good way
-#TODO: add tables of ip stats - cpu, mem, temp
+#TODO: open hardware monitor in minimized when server starts
 #TODO: add forbidhen procceses
+
 DB_UPDATES = []
-IPS_ON = {} #TODO: ask if this is a good way
+IPS_ON = {}
 
 
 class server:
