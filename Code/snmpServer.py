@@ -3,11 +3,12 @@ import time
 import psutil
 import threading
 import sched
+import os
 
 
 def get_cpu_usage():
     # return cpu precentage times the number of physical cores
-    return psutil.cpu_percent(0.5) / psutil.cpu_count()
+    return psutil.cpu_percent(0.5) * psutil.cpu_count()
 
 def get_virtual_mem():
     # return virtual mem precentage
@@ -83,19 +84,42 @@ def get_users_info():
         return psutil.users()
         
 
-import clr # the pythonnet module.
-clr.AddReference(r'C:\Users\shelly ben zion\Desktop\Cyber project\UpToDater\Code\OpenHardwareMonitorLib') 
-# e.g. clr.AddReference(r'OpenHardwareMonitor/OpenHardwareMonitorLib'), without .dll
+for i in range(100):
+    print(get_cpu_usage())
+'''
+import os
+import sys
+import wmi
 
-from OpenHardwareMonitor.Hardware import Computer
+def get_cpu_temperature():
+    w = wmi.WMI(namespace="root\\WMI")
+    temperature = w.MSAcpi_ThermalZoneTemperature()[0].CurrentTemperature / 10.0 - 273.15
+    return temperature
 
-c = Computer()
-c.CPUEnabled = True # get the Info about CPU
-c.GPUEnabled = True # get the Info about GPU
-c.Open()
-while True:
-    for a in range(0, len(c.Hardware[0].Sensors)):
-        # print(c.Hardware[0].Sensors[a].Identifier)
-        if "/temperature" in str(c.Hardware[0].Sensors[a].Identifier):
-            print(c.Hardware[0].Sensors[a].get_Value())
-            c.Hardware[0].Update()
+temperature = get_cpu_temperature()
+print(temperature)
+
+
+w = wmi.WMI(namespace="root\wmi")
+temperature_info = w.MSAcpi_ThermalZoneTemperature()[0]
+print (temperature_info.CurrentTemperature)'''
+
+
+'''import clr
+import System
+
+def init_OHM():
+    # Enable loadFromRemoteSources
+    # Load the DLL
+    dll_path = f"C:\\Shelly\\שלי - עמל ב עבודות\\2022-2023\\Cyber\\פרויקט גמר\\Code\\sources\\DLLS\\OpenHardwareMonitorLib.dll"
+    System.Security.Permissions.FileIOPermission(System.Security.Permissions.FileIOPermissionAccess.AllAccess, dll_path).Assert()
+    clr.AddReference(dll_path)
+
+    # Import namespaces or classes from the DLL
+    from OpenHardwareMonitor import Hardware
+    hw = Hardware.Computer()
+    hw.MainBoardEnabled, hw.CPUEnabled, hw.RAMEnabled, hw.GPUEnabled, hw.HDDEnabled = True,True,True,True,True
+    hw.Open()
+    return hw
+
+print(init_OHM())'''
