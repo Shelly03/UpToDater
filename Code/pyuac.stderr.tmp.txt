@@ -1,0 +1,7 @@
+Error running main function as admin
+Traceback (most recent call last):
+  File "C:\Users\shell\AppData\Local\Programs\Python\Python39\lib\site-packages\pyuac\main_decorator.py", line 89, in main_requires_admin
+    rv = run_function(*args, **kwargs)
+  File "C:\Shelly\שלי - עמל ב עבודות\2022-2023\Cyber\פרויקט גמר\Code\client.py", line 61, in open_dll_file
+    os.chdir('\\'.join( [os.getcwd(), exe_path]))
+FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Shelly\\שלי - עמל ב עבודות\\2022-2023\\Cyber\\פרויקט גמר\\Code\\Code\\sources\\DLLS'

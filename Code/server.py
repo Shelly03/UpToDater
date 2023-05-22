@@ -3,6 +3,7 @@ import threading
 import sqlite3
 import os
 from threading import Lock
+import subprocess
 
 MAIN_PORT = 65432
 ALERT_PORT = 65431
@@ -115,7 +116,7 @@ class server:
                     DB_UPDATES.append([self.info_table_name, *data])
             except Exception as e:
                 print(e)
-
+                
         # finally close the socket
         client_conn.close()
         print('DONE WITH THIS THREAD')
