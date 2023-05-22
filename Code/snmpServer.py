@@ -7,10 +7,6 @@ import wmi
 import os
 
 
-def get_cpu_usage():
-    # return cpu precentage times the number of physical cores
-    return psutil.cpu_percent(0.5) * psutil.cpu_count()
-
 def get_virtual_mem():
     # return virtual mem precentage
     return psutil.virtual_memory().percent

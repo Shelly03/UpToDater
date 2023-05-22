@@ -1,4 +1,5 @@
 import socket
+import sys
 import psutil
 import time
 import snmpServer
@@ -17,28 +18,33 @@ THREAD_ALIVE = True
 
 class client:
     def __init__(self):
-        '''self.main_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # create main socket
+        self.main_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
+        # client tries to connect the server
         connection_established = False
         while not connection_established:
+            # incase the server is not up yet
             try:
                 self.main_socket.connect((IP, MAIN_PORT))
                 connection_established = True
             except Exception as e:
-                print(e)
+                # try again
+                pass
 
+        # connect the socket responsinble for the info for the database
         self.info_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.info_socket.connect((IP, ALERT_PORT))
-'''
+
+        # run a thread in the background to send the info 
         self.info_thread = threading.Thread(target=self.send_info)
         global THREAD_ALIVE
         THREAD_ALIVE = True
-        #self.info_thread.start()
+        self.info_thread.start()
         
-        self.open_dll_file()
+        # open the exe file so i can use the dll
+        self.open_dll_exe()
                 
-        while True:
-            print(snmpServer.get_gpu())
-            time.sleep(0.5)
 
     def send_info(self):
         init_time = time.time()
@@ -47,17 +53,16 @@ class client:
                 check_time = str(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())).strip()
                 cpu = str(snmpServer.get_cpu_usage()).strip() #TODO: fix cpu
                 mem = str(snmpServer.get_virtual_mem()).strip()
-                temp = str(0) 
+                temp = str(snmpServer.get_cpu_temp()) 
                 msg = str(', '.join([IP, cpu, temp, mem, check_time]))
                 self.info_socket.send(msg.encode())
 
                 init_time = time.time()
-                
         
     @main_requires_admin
-    def open_dll_file(self):
+    def open_dll_exe(self):
         # Specify the path to the EXE file
-        exe_path = r"Code\sources\DLLS" #TODO: change directory so itll work on all comps
+        exe_path = r"Code\sources\DLLS" #TODO: change directory so it'll work on all comps
         os.chdir('\\'.join( [os.getcwd(), exe_path])) 
         # Open the EXE file with hidden window
         startupinfo = subprocess.STARTUPINFO()
@@ -72,7 +77,6 @@ class client:
         sys.exit()
 
     def disconnect(self):
-        print("disconnect")
         self.main_socket.send("bye".encode())
         global THREAD_ALIVE
         THREAD_ALIVE = False
@@ -80,4 +84,5 @@ class client:
 
 
 c = client()
-#c.disconnect()
+time.time(15)
+c.disconnect()

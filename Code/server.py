@@ -8,8 +8,7 @@ import subprocess
 MAIN_PORT = 65432
 ALERT_PORT = 65431
 
-#TODO: ask what params to check in alerts, time between checks and if puting status in db is a good way
-#TODO: add tables of ip stats - cpu, mem, temp
+
 #TODO: add forbidhen procceses
 DB_UPDATES = []
 IPS_ON = {} #TODO: ask if this is a good way
@@ -107,9 +106,7 @@ class server:
                 break
             
             try:
-                print('waiting for data')
                 data = client_conn.recv(1064).decode()
-                print('got data')
                 data = data.split(',')
                 # append the data to the global list so it will be added to the database
                 if len(data) == 5:
@@ -136,8 +133,10 @@ class server:
         self.update_database_connection(client_address)
         try:
             while True:
+                
                 if (client_main_socket.recv(1064).decode() == 'bye'):
                     break
+                
         except Exception as e:
             print("An error occurred in handle client:", str(e))
         finally:
