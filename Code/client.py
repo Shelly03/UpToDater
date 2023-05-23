@@ -47,6 +47,7 @@ class client:
                 
 
     def send_info(self):
+        #TODO: forbhden processes
         init_time = time.time()
         while THREAD_ALIVE:
             if time.time() - init_time > CHECK_SECONDS:
