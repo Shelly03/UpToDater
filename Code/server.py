@@ -3,11 +3,11 @@ import threading
 import sqlite3
 import os
 from threading import Lock
+import subprocess
 
 MAIN_PORT = 65432
 ALERT_PORT = 65431
 
-#TODO: open hardware monitor in minimized when server starts
 #TODO: add forbidhen procceses
 
 DB_UPDATES = []
@@ -106,16 +106,14 @@ class server:
                 break
             
             try:
-                print('waiting for data')
                 data = client_conn.recv(1064).decode()
-                print('got data')
                 data = data.split(',')
                 # append the data to the global list so it will be added to the database
                 if len(data) == 5:
                     DB_UPDATES.append([self.info_table_name, *data])
             except Exception as e:
                 print(e)
-
+                
         # finally close the socket
         client_conn.close()
         print('DONE WITH THIS THREAD')
@@ -135,8 +133,10 @@ class server:
         self.update_database_connection(client_address)
         try:
             while True:
+                
                 if (client_main_socket.recv(1064).decode() == 'bye'):
                     break
+                
         except Exception as e:
             print("An error occurred in handle client:", str(e))
         finally:

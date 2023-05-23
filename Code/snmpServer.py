@@ -3,12 +3,9 @@ import time
 import psutil
 import threading
 import sched
+import wmi
 import os
 
-
-def get_cpu_usage():
-    # return cpu precentage times the number of physical cores
-    return psutil.cpu_percent(0.5) * psutil.cpu_count()
 
 def get_virtual_mem():
     # return virtual mem precentage
@@ -84,35 +81,23 @@ def get_users_info():
         return psutil.users()
         
 
+def __get_info(s_type, s_name):
+    w = wmi.WMI(namespace="root\OpenHardwareMonitor")
+    sensors = w.Sensor()
+    for sensor in sensors:
+        if sensor.SensorType==s_type:
+            if sensor.Name == s_name:
+                return sensor.Value
 
-import wmi
+def get_cpu_temp():
+    return __get_info('Temperature', 'CPU Package')
 
-w = wmi.WMI(namespace="root\OpenHardwareMonitor", privileges=["Security"])
-temperature_infos = w.Sensor()
-print(temperature_infos)
-for sensor in temperature_infos:
-    if sensor.SensorType == 'Temperature':
-        print(sensor.Name)
-        print(sensor.Value)
+def get_gpu_temp():
+    return __get_info('Temperature', 'GPU Core')
 
+def get_cpu():
+    return __get_info('Load', 'CPU Total')
 
+def get_gpu():
+    return __get_info('Load', 'GPU Core')
 
-
-'''import clr
-import System
-
-def init_OHM():
-    # Enable loadFromRemoteSources
-    # Load the DLL
-    dll_path = f"C:\\Shelly\\שלי - עמל ב עבודות\\2022-2023\\Cyber\\פרויקט גמר\\Code\\sources\\DLLS\\OpenHardwareMonitorLib.dll"
-    System.Security.Permissions.FileIOPermission(System.Security.Permissions.FileIOPermissionAccess.AllAccess, dll_path).Assert()
-    clr.AddReference(dll_path)
-
-    # Import namespaces or classes from the DLL
-    from OpenHardwareMonitor import Hardware
-    hw = Hardware.Computer()
-    hw.MainBoardEnabled, hw.CPUEnabled, hw.RAMEnabled, hw.GPUEnabled, hw.HDDEnabled = True,True,True,True,True
-    hw.Open()
-    return hw
-
-print(init_OHM())'''

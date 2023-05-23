@@ -42,11 +42,6 @@ print(s.handle_snmp_request('cpu'))
 
 '''
 
-lst = {'a' :1,'b':2, 'c':3}
-print(lst[])
-
-'''   
-
 import psutil
 from datetime import datetime
 import pandas as pd
@@ -120,4 +115,3 @@ def construct_dataframe(processes):
     return df
 
 print(construct_dataframe(get_processes_info()))
-'''
