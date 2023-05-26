@@ -6,7 +6,9 @@ import snmpServer
 import threading
 import subprocess
 from pyuac import main_requires_admin
+import pandas as pd
 import os
+import json
 
 
 IP = "127.0.0.1"
@@ -15,6 +17,8 @@ ALERT_PORT = 65431
 
 CHECK_SECONDS = 5
 THREAD_ALIVE = True
+
+FORBIDDEN_PROCESSES_NAMES = ['msedge.exe']
 
 class client:
     def __init__(self):
@@ -40,10 +44,10 @@ class client:
         self.info_thread = threading.Thread(target=self.send_info)
         global THREAD_ALIVE
         THREAD_ALIVE = True
-        self.info_thread.start()
+        #self.info_thread.start()
         
         # open the exe file so i can use the dll
-        self.open_dll_exe()
+        #self.open_dll_exe()
                 
 
     def send_info(self):
@@ -52,18 +56,30 @@ class client:
         while THREAD_ALIVE:
             if time.time() - init_time > CHECK_SECONDS:
                 check_time = str(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())).strip()
-                cpu = str(snmpServer.get_cpu_usage()).strip() #TODO: fix cpu
+                cpu = str(snmpServer.get_cpu()).strip() #TODO: fix cpu
                 mem = str(snmpServer.get_virtual_mem()).strip()
                 temp = str(snmpServer.get_cpu_temp()) 
                 msg = str(', '.join([IP, cpu, temp, mem, check_time]))
-                self.info_socket.send(msg.encode())
+                #self.info_socket.send(msg.encode())
+                
+                self.check_for_forbidden_proccesses()
 
                 init_time = time.time()
+                
+    def check_for_forbidden_proccesses(self):
+                processes = snmpServer.get_processes_info()
+                for forbidden_process in FORBIDDEN_PROCESSES_NAMES:
+                    forbidden_processes = processes[processes['name'] == forbidden_process]
+
+                    if len(forbidden_processes.index) > 0:
+                        msg = f'FORBDDEN PROCCESS RUNNING, {forbidden_process}'
+                        self.info_socket.send(msg.encode())
+
         
     @main_requires_admin
     def open_dll_exe(self):
         # Specify the path to the EXE file
-        exe_path = r"Code\sources\DLLS" #TODO: change directory so it'll work on all comps
+        exe_path = r"sources\DLLS" #TODO: change directory so it'll work on all comps
         os.chdir('\\'.join( [os.getcwd(), exe_path])) 
         # Open the EXE file with hidden window
         startupinfo = subprocess.STARTUPINFO()
@@ -85,5 +101,5 @@ class client:
 
 
 c = client()
-time.time(15)
+time.sleep(15000000)
 c.disconnect()
