@@ -18,7 +18,7 @@ ALERT_PORT = 65431
 CHECK_SECONDS = 1000000
 THREAD_ALIVE = True
 
-FORBIDDEN_PROCESSES_NAMES = ['msedge.exe']
+FORBIDDEN_PROCESSES_NAMES = ['Notepad.exe']
 
 class client:
     def __init__(self):
@@ -69,29 +69,29 @@ class client:
     def check_for_forbidden_proccesses(self):
                 processes = snmpServer.get_processes_info()
                 for forbidden_process in FORBIDDEN_PROCESSES_NAMES:
-                    forbidden_processes = processes[processes['name'] == forbidden_process]
-
-                    if len(forbidden_processes.index) > 0:
-                        msg = f'FORBDDEN PROCCESS RUNNING, {forbidden_process}'
-                        self.info_socket.send(msg.encode())
-                        self.send_procmon(processes, self.info_socket)
+                    for process in processes:
+                        if process['name'] == forbidden_process:
+                            msg = f'FORBDDEN PROCCESS RUNNING, {forbidden_process[0]}'
+                            self.info_socket.send(msg.encode())
+                self.send_procmon(processes, self.info_socket)
 
     def send_procmon(self, processes, socket):
-        data = bytes(processes)
+        data = str(processes)
         # Send the serialized data over the socket in packets
         packet_size = 4096
-        total_size = len(data)
+        total_size = len(data.encode())
         num_packets = total_size // packet_size + 1
 
         # Send the number of packets to expect
         socket.send(num_packets.to_bytes(4, byteorder='big'))
+        print('here')
 
         # Send the serialized data in packets
         for i in range(num_packets):
             start = i * packet_size
             end = min(start + packet_size, total_size)
             packet = data[start:end]
-            socket.send(packet)
+            socket.send(packet.encode())
         
     @main_requires_admin
     def open_dll_exe(self):
@@ -119,5 +119,5 @@ class client:
 
 c = client()
 c.check_for_forbidden_proccesses()
-time.sleep(15000)
+time.sleep(150)
 c.disconnect()

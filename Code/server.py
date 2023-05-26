@@ -116,10 +116,9 @@ class server:
                 # append the data to the global list so it will be added to the database
                 if len(data) == 5:
                     DB_UPDATES.append([self.info_table_name, *data])
-                # forbidden socket running
+                # forbidden process running
                 if len(data) == 2:
-                    forbidden_socket = data[1]
-                    print(forbidden_socket)
+                    forbidden_process = data[1]
                     
                     # Receive the number of packets to expect
                     num_packets_data = client_conn.recv(4)
@@ -132,7 +131,8 @@ class server:
                         packet = client_conn.recv(4096)
                         print(packet)
                         received_data += packet
-                    print(df(received_data))
+                    print(received_data.decode())
+                    print(forbidden_process)
                     
             except Exception as e:
                 print(e)
@@ -187,7 +187,7 @@ class server:
             #accept a new client
             conn, addr = self.main_socket.accept()
             alert_conn, alert_addr = self.alert_socket.accept()
-            
+            print('new client ', addr)
             # thread that handles the client
             main_client_thread = threading.Thread(
                 target=self.handle_client, args=(conn, addr,))

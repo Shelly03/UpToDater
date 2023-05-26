@@ -162,13 +162,13 @@ def get_processes_info():
             'cores': cores, 'cpu_usage': cpu_usage, 'status': status, 'nice': nice,
             'memory_usage': memory_usage, 'n_threads': n_threads, 'username': username,
             })
-
+    return processes
     # convert to pandas dataframe
     df = pd.DataFrame(processes)
     # set the process id as index of a process
     df.set_index('pid', inplace=True)
     # convert to proper date format
     df['create_time'] = df['create_time'].apply(datetime.strftime, args=("%Y-%m-%d %H:%M:%S",))
-    return df
+    
 
 
