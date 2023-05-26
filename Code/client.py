@@ -8,14 +8,14 @@ import subprocess
 from pyuac import main_requires_admin
 import pandas as pd
 import os
-import json
+from joblib import dump
 
 
 IP = "127.0.0.1"
 MAIN_PORT = 65432
 ALERT_PORT = 65431
 
-CHECK_SECONDS = 5
+CHECK_SECONDS = 1000000
 THREAD_ALIVE = True
 
 FORBIDDEN_PROCESSES_NAMES = ['msedge.exe']
@@ -74,7 +74,24 @@ class client:
                     if len(forbidden_processes.index) > 0:
                         msg = f'FORBDDEN PROCCESS RUNNING, {forbidden_process}'
                         self.info_socket.send(msg.encode())
+                        self.send_procmon(processes, self.info_socket)
 
+    def send_procmon(self, processes, socket):
+        data = bytes(processes)
+        # Send the serialized data over the socket in packets
+        packet_size = 4096
+        total_size = len(data)
+        num_packets = total_size // packet_size + 1
+
+        # Send the number of packets to expect
+        socket.send(num_packets.to_bytes(4, byteorder='big'))
+
+        # Send the serialized data in packets
+        for i in range(num_packets):
+            start = i * packet_size
+            end = min(start + packet_size, total_size)
+            packet = data[start:end]
+            socket.send(packet)
         
     @main_requires_admin
     def open_dll_exe(self):
@@ -101,5 +118,6 @@ class client:
 
 
 c = client()
-time.sleep(15000000)
+c.check_for_forbidden_proccesses()
+time.sleep(15000)
 c.disconnect()

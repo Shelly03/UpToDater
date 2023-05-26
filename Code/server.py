@@ -1,3 +1,4 @@
+from joblib import load
 import socket
 import threading
 import sqlite3
@@ -109,7 +110,7 @@ class server:
                 break
             
             try:
-                data = client_conn.recv(1064).decode()
+                data = client_conn.recv(1024).decode()
                 
                 data = data.split(',')
                 # append the data to the global list so it will be added to the database
@@ -119,6 +120,20 @@ class server:
                 if len(data) == 2:
                     forbidden_socket = data[1]
                     print(forbidden_socket)
+                    
+                    # Receive the number of packets to expect
+                    num_packets_data = client_conn.recv(4)
+                    num_packets = int.from_bytes(num_packets_data, byteorder='big')
+                    print(num_packets)
+
+                    # Receive the serialized data packets and reassemble them
+                    received_data = b""
+                    for _ in range(num_packets):
+                        packet = client_conn.recv(4096)
+                        print(packet)
+                        received_data += packet
+                    print(df(received_data))
+                    
             except Exception as e:
                 print(e)
                 
