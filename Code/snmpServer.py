@@ -169,6 +169,5 @@ def get_processes_info():
     df.set_index('pid', inplace=True)
     # convert to proper date format
     df['create_time'] = df['create_time'].apply(datetime.strftime, args=("%Y-%m-%d %H:%M:%S",))
-    
 
 

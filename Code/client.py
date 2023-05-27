@@ -15,7 +15,7 @@ IP = "127.0.0.1"
 MAIN_PORT = 65432
 ALERT_PORT = 65431
 
-CHECK_SECONDS = 1000000
+CHECK_SECONDS = 5
 THREAD_ALIVE = True
 
 FORBIDDEN_PROCESSES_NAMES = ['Notepad.exe']
@@ -44,10 +44,10 @@ class client:
         self.info_thread = threading.Thread(target=self.send_info)
         global THREAD_ALIVE
         THREAD_ALIVE = True
-        #self.info_thread.start()
+        self.info_thread.start()
         
         # open the exe file so i can use the dll
-        #self.open_dll_exe()
+        self.open_dll_exe()
                 
 
     def send_info(self):
@@ -60,7 +60,7 @@ class client:
                 mem = str(snmpServer.get_virtual_mem()).strip()
                 temp = str(snmpServer.get_cpu_temp()) 
                 msg = str(', '.join([IP, cpu, temp, mem, check_time]))
-                #self.info_socket.send(msg.encode())
+                self.info_socket.send(msg.encode())
                 
                 self.check_for_forbidden_proccesses()
 
@@ -73,7 +73,7 @@ class client:
                         if process['name'] == forbidden_process:
                             msg = f'FORBDDEN PROCCESS RUNNING, {forbidden_process[0]}'
                             self.info_socket.send(msg.encode())
-                self.send_procmon(processes, self.info_socket)
+                            self.send_procmon(processes, self.info_socket)
 
     def send_procmon(self, processes, socket):
         data = str(processes)
@@ -96,8 +96,9 @@ class client:
     @main_requires_admin
     def open_dll_exe(self):
         # Specify the path to the EXE file
-        exe_path = r"sources\DLLS" #TODO: change directory so it'll work on all comps
+        exe_path = r"sources\DLLS"
         os.chdir('\\'.join( [os.getcwd(), exe_path])) 
+        
         # Open the EXE file with hidden window
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -118,6 +119,5 @@ class client:
 
 
 c = client()
-c.check_for_forbidden_proccesses()
-time.sleep(150)
+time.sleep(15)
 c.disconnect()

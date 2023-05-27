@@ -131,89 +131,52 @@ os.system('start processes.csv')
 
 import tkinter as tk
 from tkinter import ttk
-from PIL import Image
-
-class MyGUI(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        
-        self.title('NETVIGILANT')
-        self.geometry("1100x580")
-
-        # sidebar
-        self.sidebar_frame = ttk.Frame(self, width=140)
-        self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(2, weight=1)
-        self.grid_rowconfigure(0, weight=1)  # Added line
-                
-        # logo
-        self.logo = Image.open("sources\Images\llogo.png")
-        self.labelimage = ttk.Label(master=self.sidebar_frame, image=self.logo, anchor="nw")
-
-        # Grid positioning
-        self.labelimage.grid(row=0, column=0, sticky="nw")
-
-        # change theme
-        self.appearance_mode_label = ttk.Label(self.sidebar_frame, text="theme:", anchor="sw")
-        self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
-        self.appearance_mode_optionmenu = ttk.OptionMenu(self.sidebar_frame, tk.StringVar(), "Dark", "Light", "Dark", "System", command=self.change_theme)
-        self.appearance_mode_optionmenu.grid(row=6, column=0, padx=20, pady=(10, 10))
-        
-        # add scaling
-        self.scaling_label = ttk.Label(self.sidebar_frame, text="UI Scaling:", anchor="sw")
-        self.scaling_label.grid(row=7, column=0, padx=20, pady=(10, 0))
-        self.scaling_optionmenu = ttk.OptionMenu(self.sidebar_frame, tk.StringVar(), "100%", "80%", "90%", "100%", "110%", "120%", command=self.change_scaling)
-        self.scaling_optionmenu.grid(row=8, column=0, padx=20, pady=(10, 20))
-        
-        self.appearance_mode_optionmenu["menu"].config(bg="white", fg="black")  # Set menu background and foreground colors
-        self.scaling_optionmenu["menu"].config(bg="white", fg="black")  # Set menu background and foreground colors
-        
-        self.appearance_mode_optionmenu.set("Dark")
-        self.scaling_optionmenu.set("100%")
-
-    def change_theme(self, selected_mode):
-        if selected_mode == "Light":
-            self.configure(bg="white")
-            self.labelimage.configure(bg="white")
-            self.appearance_mode_label.configure(bg="white", fg="black")
-            self.appearance_mode_optionmenu.configure(bg="white", fg="black")
-            self.scaling_label.configure(bg="white", fg="black")
-            self.scaling_optionmenu.configure(bg="white", fg="black")
-            self.logo = Image.open("sources\Images\llogo.png")  # Change the logo image to light mode image
-            self.labelimage.configure(image=self.logo)
-        elif selected_mode == "Dark":
-            self.configure(bg="black")
-            self.labelimage.configure(bg="black")
-            self.appearance_mode_label.configure(bg="black", fg="white")
-            self.appearance_mode_optionmenu.configure(bg="black", fg="white")
-            self.scaling_label.configure(bg="black", fg="white")
-            self.scaling_optionmenu.configure(bg="black", fg="white")
-            self.logo = Image.open("sources\Images\dlogo.png")  # Change the logo image to dark mode image
-            self.labelimage.configure(image=self.logo)
-
-    def change_scaling(self, selected_scaling):
-        if selected_scaling == "80%":
-            # Apply scaling of 80%
-            self.configure(scale_factor=0.8)
-        elif selected_scaling == "90%":
-            # Apply scaling of 90%
-            self.configure(scale_factor=0.9)
-        elif selected_scaling == "100%":
-            # Apply scaling of 100%
-            self.configure(scale_factor=1.0)
-        elif selected_scaling == "110%":
-            # Apply scaling of 110%
-            self.configure(scale_factor=1.1)
-        elif selected_scaling == "120%":
-            # Apply scaling of 120%
-            self.configure(scale_factor=1.2)
-
-    def create_options(self):
-        # Create additional options
-        pass
 
 # Create the main window
-app = MyGUI()
+root = tk.Tk()
+root.title("Tree View Example")
 
-# Start the Tkinter event loop
-app.mainloop()
+# Create a TreeView widget
+tree = ttk.Treeview(root)
+
+# Define the columns
+tree["columns"] = ("Name", "Age")
+
+# Format the columns
+tree.column("#0", width=100)
+tree.column("Name", width=150)
+tree.column("Age", width=50)
+
+# Create the headers
+tree.heading("#0", text="Icon")
+tree.heading("Name", text="Name")
+tree.heading("Age", text="Age")
+
+# Define the icons
+icon_folder = tk.PhotoImage(file="folder_icon.png")
+icon_file = tk.PhotoImage(file="file_icon.png")
+
+# Add parent items
+parent1 = tree.insert("", "end", image=icon_folder, text="Parent 1", values=("John Doe", 30))
+parent2 = tree.insert("", "end", image=icon_folder, text="Parent 2", values=("Jane Smith", 25))
+
+# Add child items
+tree.insert(parent1, "end", image=icon_file, text="Child 1", values=("File 1", 10))
+tree.insert(parent1, "end", image=icon_file, text="Child 2", values=("File 2", 12))
+tree.insert(parent2, "end", image=icon_file, text="Child 3", values=("File 3", 8))
+tree.insert(parent2, "end", image=icon_file, text="Child 4", values=("File 4", 9))
+
+# Set the icons for the TreeView
+tree.tag_configure("folder", image=icon_folder)
+tree.tag_configure("file", image=icon_file)
+
+# Pack the TreeView widget
+tree.pack()
+
+# Run the main loop
+root.mainloop()
+
+
+
+
+

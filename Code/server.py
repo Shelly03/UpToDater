@@ -11,7 +11,7 @@ MAIN_PORT = 65432
 ALERT_PORT = 65431
 
 
-#TODO: add forbidhen procceses
+#TODO: add forbidden procceses
 DB_UPDATES = []
 IPS_ON = {} 
 
@@ -25,6 +25,7 @@ class server:
         while True:
             # if apdates list is not empty
             if len(DB_UPDATES) > 0:
+                self.lock.acquire()
                 #get the first update inserted (FIFO)
                 data = DB_UPDATES.pop(0)
                 
@@ -49,6 +50,7 @@ class server:
                     db_cursor.execute(f"INSERT INTO {self.info_table_name} ({', '.join(self.info_table_colomns)}) VALUES (?, ?, ?, ?, ?)", (values))
 
                 db_conn.commit()
+                self.lock.release()
 
 
     def init_server(self):
@@ -63,12 +65,14 @@ class server:
         self.alert_socket.bind(('0.0.0.0', ALERT_PORT))
         self.alert_socket.listen(5)
         print('> INFO SERVER ON')
+        
+        self.lock = Lock()
 
 
 
     def init_database(self):
         # create connection and cursor for the db
-        self.db_name = "ipconections.db"
+        self.db_name = "ipconnections.db"
         db_conn = sqlite3.connect(self.db_name)
         db_corsur = db_conn.cursor()
         
@@ -106,8 +110,9 @@ class server:
             # if the connection is off the thread must end
             global IPS_ON
             if IPS_ON[main_sock_addr[0]] == False:
+                print(IPS_ON)
                 IPS_ON.pop(main_sock_addr[0])
-                break
+                return
             
             try:
                 data = client_conn.recv(1024).decode()
@@ -157,10 +162,14 @@ class server:
         return mac_address
 
     def update_database_connection(self, client_address):
+        self.lock.acquire()
         DB_UPDATES.append([self.conn_table_name, client_address[0], self.get_mac_address(client_address[0]), 'on'])
+        self.lock.release()
 
     def update_database_disconnection(self, client_address):
+        self.lock.acquire()
         DB_UPDATES.append([self.conn_table_name, client_address[0], self.get_mac_address(client_address[0]), 'off'])
+        self.lock.release()
 
     def handle_client(self, client_main_socket, client_address):
         # update database client has connected
@@ -174,8 +183,10 @@ class server:
         except Exception as e:
             print("An error occurred in handle client:", str(e))
         finally:
+            self.lock.acquire()
             global IPS_ON
             IPS_ON[client_address[0]] = False
+            self.lock.release()
             # close the socket connection
             client_main_socket.close()
             # update database client has disconnected
@@ -188,13 +199,16 @@ class server:
             conn, addr = self.main_socket.accept()
             alert_conn, alert_addr = self.alert_socket.accept()
             print('new client ', addr)
+            print('allert line ', alert_addr)
             # thread that handles the client
             main_client_thread = threading.Thread(
                 target=self.handle_client, args=(conn, addr,))
             
             # declare this ip as on so the info thread will know when the main client thread closes
+            self.lock.acquire()
             global IPS_ON
-            IPS_ON[addr[0]]= True
+            IPS_ON[addr[0]] = True
+            self.lock.release()
             
             # thread that supplies client info
             info_thread = threading.Thread(
