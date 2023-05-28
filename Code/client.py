@@ -6,7 +6,9 @@ import snmpServer
 import threading
 import subprocess
 from pyuac import main_requires_admin
+import pandas as pd
 import os
+from joblib import dump
 
 
 IP = "127.0.0.1"
@@ -15,6 +17,8 @@ ALERT_PORT = 65431
 
 CHECK_SECONDS = 5
 THREAD_ALIVE = True
+
+FORBIDDEN_PROCESSES_NAMES = ['Notepad.exe']
 
 class client:
     def __init__(self):
@@ -52,19 +56,49 @@ class client:
         while THREAD_ALIVE:
             if time.time() - init_time > CHECK_SECONDS:
                 check_time = str(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())).strip()
-                cpu = str(snmpServer.get_cpu_usage()).strip() #TODO: fix cpu
+                cpu = str(snmpServer.get_cpu()).strip() #TODO: fix cpu
                 mem = str(snmpServer.get_virtual_mem()).strip()
                 temp = str(snmpServer.get_cpu_temp()) 
                 msg = str(', '.join([IP, cpu, temp, mem, check_time]))
                 self.info_socket.send(msg.encode())
+                
+                self.check_for_forbidden_proccesses()
 
                 init_time = time.time()
+                
+    def check_for_forbidden_proccesses(self):
+                processes = snmpServer.get_processes_info()
+                for forbidden_process in FORBIDDEN_PROCESSES_NAMES:
+                    for process in processes:
+                        if process['name'] == forbidden_process:
+                            msg = f'FORBDDEN PROCCESS RUNNING, {forbidden_process[0]}'
+                            self.info_socket.send(msg.encode())
+                            self.send_procmon(processes, self.info_socket)
+
+    def send_procmon(self, processes, socket):
+        data = str(processes)
+        # Send the serialized data over the socket in packets
+        packet_size = 4096
+        total_size = len(data.encode())
+        num_packets = total_size // packet_size + 1
+
+        # Send the number of packets to expect
+        socket.send(num_packets.to_bytes(4, byteorder='big'))
+        print('here')
+
+        # Send the serialized data in packets
+        for i in range(num_packets):
+            start = i * packet_size
+            end = min(start + packet_size, total_size)
+            packet = data[start:end]
+            socket.send(packet.encode())
         
     @main_requires_admin
     def open_dll_exe(self):
         # Specify the path to the EXE file
-        exe_path = r"Code\sources\DLLS" #TODO: change directory so it'll work on all comps
+        exe_path = r"sources\DLLS"
         os.chdir('\\'.join( [os.getcwd(), exe_path])) 
+        
         # Open the EXE file with hidden window
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -85,5 +119,5 @@ class client:
 
 
 c = client()
-time.time(15)
+time.sleep(15)
 c.disconnect()

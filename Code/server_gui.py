@@ -1,56 +1,64 @@
 import sqlite3
 import customtkinter
-import tkinter
+import tkinter as tk
+from tkinter import ttk
+import server
 from PIL import Image,ImageTk
+import sys
 
 customtkinter.set_appearance_mode("System")
-customtkinter.set_default_color_theme("blue")
+customtkinter.set_default_color_theme("dark-blue")
         
 class ServerGUI(customtkinter.CTk):
     
     def __init__(self, db_name='ipconections.db'):
-        self.title('PROJECT NAME')
-        self.geometry(f"{1100}x{580}")
-
-        #db setup
-        self.db_name = db_name
-        self.table_name = 'ipAddresses'
-        #new conn and corsur
-        self.conn = sqlite3.connect(self.db_name)
-        self.cursor = self.conn.cursor()
-        #create the table is it is not there
-        self.cursor.execute(f'''CREATE TABLE IF NOT EXISTS {self.table_name}
-                            (ip_address text, connection_status text)''')
-        self.conn.commit()
+        super().__init__()
         
-        #images
-        self.comp_icon=customtkinter.CTkImage(Image.open(r"Code\sources\computer_icon.png"))
-                
+        self.title('NETVIGILANT')
+        self.geometry("1100x580")
+
+        # images
+        self.comp_icon = customtkinter.CTkImage(Image.open("sources\Images\computer_icon.png"))
+
         # sidebar
         self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
-        self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(4, weight=1)
+        self.sidebar_frame.grid(row=0, column=0, sticky="nws")
+
+        # logo
+        self.logo = customtkinter.CTkImage(light_image=Image.open("sources\Images\llogo.png"),
+                                        dark_image=Image.open("sources\Images\dlogo.png"),
+                                        size=(200, 200))
+        self.labelimage = customtkinter.CTkLabel(master=self.sidebar_frame, text=None, image=self.logo, anchor="nw")
+
+        # Grid positioning
+        self.labelimage.grid(row=0, column=0, sticky="nw")
+
+        # change theme
+        self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="theme:", anchor="sw")
+        self.appearance_mode_label.grid(padx=20, pady=(10, 0), sticky="sw")
+        self.appearance_mode_optionmenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["Light", "Dark", "System"], command=self.change_theme)
+        self.appearance_mode_optionmenu.grid(padx=20, pady=(10, 10), sticky="sw")
+
+        # add scaling
+        self.scaling_label = customtkinter.CTkLabel(self.sidebar_frame, text="UI Scaling:", anchor="sw")
+        self.scaling_label.grid(padx=20, pady=(10, 0), sticky="sw")
+        self.scaling_optionmenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["80%", "90%", "100%", "110%", "120%"], command=self.change_scaling)
+        self.scaling_optionmenu.grid(padx=20, pady=(10, 20), sticky="sw")
+
+        self.grid_rowconfigure(0, weight=1)  # Make first row of main frame stretch vertically
+
         
-        # project name
-        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="project name", font=customtkinter.CTkFont(size=20, weight="bold"))
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+        self.appearance_mode_optionmenu.set("Dark")
+        self.scaling_optionmenu.set("100%")
+        self.create_options()
+
+    def create_options(self):
+        for i in range(10):
+            button = customtkinter.CTkButton(self, text=f'number {i}', command=self.button_function)
+            button.grid(row = i, column = 1)
+            self.grid_rowconfigure(i, weight=1)
         
-        #change theme
-        self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="theme:", anchor="w")
-        self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
-        self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["Light", "Dark", "System"], command=self.change_theme)
-        self.appearance_mode_optionemenu.grid(row=6, column=0, padx=20, pady=(10, 10))
-        
-        #add scaling
-        self.scaling_label = customtkinter.CTkLabel(self.sidebar_frame, text="UI Scaling:", anchor="w")
-        self.scaling_label.grid(row=7, column=0, padx=20, pady=(10, 0))
-        self.scaling_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["80%", "90%", "100%", "110%", "120%"],command=self.change_scaling)
-        self.scaling_optionemenu.grid(row=8, column=0, padx=20, pady=(10, 20))
-        
-        self.appearance_mode_optionemenu.set("Dark")
-        self.scaling_optionemenu.set("100%")
-        self.cursor.execute(f"update {self.table_name} set connection_status = 'off' where ip_address = '127.0.0.1'")
-        self.computers()
+        '''self.computers()
         
     def open_new_window(self, ip):
         new_window = customtkinter.CTkToplevel(self)
@@ -80,7 +88,7 @@ class ServerGUI(customtkinter.CTk):
             else:
                 col += 1
 
-        '''self.cursor.execute(f"SELECT ip_address FROM {self.table_name} WHERE connection_status='off';")
+        self.cursor.execute(f"SELECT ip_address FROM {self.table_name} WHERE connection_status='off';")
         off_comps = self.cursor.fetchall()
         print(off_comps)
         txt=1
@@ -93,10 +101,10 @@ class ServerGUI(customtkinter.CTk):
                 row += 1
             else:
                 col += 1
-            txt+=1'''
+            txt+=1
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure((1,2,3,4,5), weight=1)
-        
+        '''
         
     def change_theme(self, new_appearance_mode):
         customtkinter.set_appearance_mode(new_appearance_mode)
@@ -106,6 +114,7 @@ class ServerGUI(customtkinter.CTk):
     def button_function(self):
         print('pressed')
 
+
 if __name__ == '__main__':
-    app = ServerGUI()
-    app.mainloop()
+    ServerGUI = ServerGUI()
+    ServerGUI.mainloop()
