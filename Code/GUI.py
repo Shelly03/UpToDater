@@ -3,7 +3,6 @@ from tkinter import ttk
 from ttkthemes import ThemedStyle
 import sqlite3
 
-
 class ServerGUI:
     def __init__(self):
         self.root = tk.Tk()
@@ -33,19 +32,23 @@ class ServerGUI:
         self.data = self.db_cursor.fetchall()
 
         # Define the columns
-        self.columns = ["status", "ip", "mac"]
+        self.columns = [ "ip", "mac"]
 
         # Create a treeview widget
-        self.tree = ttk.Treeview(self.root, columns=self.columns, show="headings")
+        self.tree = ttk.Treeview(self.root, selectmode= 'browse')
         self.tree.pack(side="left", fill="both", expand=True)
+        
+        self.tree['columns'] = self.columns
+        self.tree['show'] = 'headings'
+        self.tree['show'] = 'tree'
 
         # Configure the treeview
         self.tree.heading("#0", text="#")
-        self.tree.heading("status", text="Status")
-        self.tree.heading("ip", text="IP")
+        #self.tree.heading("status", text="Status")
+        self.tree.heading("ip", text="IP") 
         self.tree.heading("mac", text="MAC")
         self.tree.column("#0", width=20, minwidth=10)
-        self.tree.column("status", width=100)
+        #self.tree.column("status", width=100)
         self.tree.column("ip", width=150, minwidth=150)
         self.tree.column("mac", width=150, minwidth=150)
 
@@ -60,7 +63,7 @@ class ServerGUI:
                     "",
                     "end",
                     text="",
-                    values=("ON", computer[1], computer[2]),
+                    values=(computer[1], computer[2]),
                     open=True,
                     tags="on",
                 )
@@ -70,16 +73,20 @@ class ServerGUI:
                     "",
                     "end",
                     text="",
-                    values=("OFF", computer[1], computer[2]),
+                    values=(computer[1], computer[2]),
                     open=True,
                     tags="off",
                 )
                 self.tree.item(parent, image=self.off_icon, tags="off")
 
             # Insert child items under each parent row
-            self.tree.insert(parent, "end", text="Load Info")
+            self.tree.insert(parent, "end", text="Hardware Info")
             self.tree.insert(parent, "end", text="Net Info")
-            self.tree.insert(parent, "end", text="Stats Info")
+            self.tree.insert(parent, "end", text="Drives Info")
+            self.tree.insert(parent, "end", text="Users Info")
+            self.tree.insert(parent, "end", text="Net Interface Info")
+            self.tree.insert(parent, "end", text="Connections Info")
+            
 
         # Add a scrollbar to the treeview
         scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=self.tree.yview)
@@ -119,7 +126,6 @@ class ServerGUI:
             self.switch.config(image=self.light, bg="white", activebackground="white")
             self.logo_label.config(image=self.light_logo)
             self.switch_value = True
-
 
 if __name__ == "__main__":
     server_gui = ServerGUI()
