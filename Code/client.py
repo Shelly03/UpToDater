@@ -18,13 +18,14 @@ ALERT_PORT = 65431
 CHECK_SECONDS = 5
 THREAD_ALIVE = True
 
-FORBIDDEN_PROCESSES_NAMES = ['Notepad.exe']
+FORBIDDEN_PROCESSES_NAMES = ["Notepad.exe"]
+
 
 class client:
     def __init__(self):
         # create main socket
         self.main_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        
+
         # client tries to connect the server
         connection_established = False
         while not connection_established:
@@ -40,40 +41,42 @@ class client:
         self.info_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.info_socket.connect((IP, ALERT_PORT))
 
-        # run a thread in the background to send the info 
+        # run a thread in the background to send the info
         self.info_thread = threading.Thread(target=self.send_info)
         global THREAD_ALIVE
         THREAD_ALIVE = True
         self.info_thread.start()
-        
+
         # open the exe file so i can use the dll
         self.open_dll_exe()
-                
+        print("done")
 
     def send_info(self):
-        #TODO: forbhden processes
+        # TODO: forbhden processes
         init_time = time.time()
         while THREAD_ALIVE:
             if time.time() - init_time > CHECK_SECONDS:
-                check_time = str(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())).strip()
-                cpu = str(snmpServer.get_cpu()).strip() #TODO: fix cpu
+                check_time = str(
+                    time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+                ).strip()
+                cpu = str(snmpServer.get_cpu()).strip()  # TODO: fix cpu
                 mem = str(snmpServer.get_virtual_mem()).strip()
-                temp = str(snmpServer.get_cpu_temp()) 
-                msg = str(', '.join([IP, cpu, temp, mem, check_time]))
+                temp = str(snmpServer.get_cpu_temp())
+                msg = str(", ".join([IP, cpu, temp, mem, check_time]))
                 self.info_socket.send(msg.encode())
-                
+
                 self.check_for_forbidden_proccesses()
 
                 init_time = time.time()
-                
+
     def check_for_forbidden_proccesses(self):
-                processes = snmpServer.get_processes_info()
-                for forbidden_process in FORBIDDEN_PROCESSES_NAMES:
-                    for process in processes:
-                        if process['name'] == forbidden_process:
-                            msg = f'FORBDDEN PROCCESS RUNNING, {forbidden_process[0]}'
-                            self.info_socket.send(msg.encode())
-                            self.send_procmon(processes, self.info_socket)
+        processes = snmpServer.get_processes_info()
+        for forbidden_process in FORBIDDEN_PROCESSES_NAMES:
+            for process in processes:
+                if process["name"] == forbidden_process:
+                    msg = f"FORBDDEN PROCCESS RUNNING, {forbidden_process[0]}"
+                    self.info_socket.send(msg.encode())
+                    self.send_procmon(processes, self.info_socket)
 
     def send_procmon(self, processes, socket):
         data = str(processes)
@@ -83,8 +86,7 @@ class client:
         num_packets = total_size // packet_size + 1
 
         # Send the number of packets to expect
-        socket.send(num_packets.to_bytes(4, byteorder='big'))
-        print('here')
+        socket.send(num_packets.to_bytes(4, byteorder="big"))
 
         # Send the serialized data in packets
         for i in range(num_packets):
@@ -92,29 +94,26 @@ class client:
             end = min(start + packet_size, total_size)
             packet = data[start:end]
             socket.send(packet.encode())
-        
+
     @main_requires_admin
     def open_dll_exe(self):
         # Specify the path to the EXE file
-        exe_path = r"sources\DLLS"
-        os.chdir('\\'.join( [os.getcwd(), exe_path])) 
+        exe_path = r"sources\OpenHardwareMonitor\OpenHardwareMonitor.exe"
+        exe_path = "\\".join([os.getcwd(), exe_path])
         
-        # Open the EXE file with hidden window
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        startupinfo.wShowWindow = subprocess.SW_HIDE
+        # runs the exe as a daemon process
+        subprocess.Popen(["pythonw", exe_path])
 
-        proc = subprocess.Popen('OpenHardwareMonitor.exe', startupinfo=startupinfo, creationflags=subprocess.CREATE_NO_WINDOW)
-        
-        # Close the administrative Command Prompt window immediately
-        subprocess.call(['taskkill', '/F', '/T', '/PID', str(proc.pid)])
-            # Exit the Python script to prevent further execution
-        sys.exit()
-
+    
     def disconnect(self):
+        # sends the server "bye" to notify disconnection
         self.main_socket.send("bye".encode())
+
+        # notifies the other thread it has to finish
         global THREAD_ALIVE
         THREAD_ALIVE = False
+
+        # close the main socket of the client
         self.main_socket.close()
 
 

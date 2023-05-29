@@ -1,7 +1,7 @@
 import psutil
 import time
 
-'''
+"""
 class ComputerInfoSNMP:
 
     def handle_snmp_request(self, request):
@@ -127,56 +127,109 @@ df.to_csv('processes.csv', index=True)
 # Open the text file with the default text editor
 import os
 os.system('start processes.csv')
-'''
+"""
 
-import tkinter as tk
-from tkinter import ttk
+import clr  # package pythonnet, not clr
+import shutil
 
-# Create the main window
-root = tk.Tk()
-root.title("Tree View Example")
+# openhardwaremonitor_hwtypes = ['Mainboard','SuperIO','CPU','RAM','GpuNvidia','GpuAti','TBalancer','Heatmaster','HDD']
+openhardwaremonitor_hwtypes = [
+    "Mainboard",
+    "SuperIO",
+    "CPU",
+    "RAM",
+    "GpuNvidia",
+    "GpuAti",
+    "TBalancer",
+    "Heatmaster",
+    "HDD",
+]
+cputhermometer_hwtypes = [
+    "Mainboard",
+    "SuperIO",
+    "CPU",
+    "GpuNvidia",
+    "GpuAti",
+    "TBalancer",
+    "Heatmaster",
+    "HDD",
+]
+openhardwaremonitor_sensortypes = [
+    "Voltage",
+    "Clock",
+    "Temperature",
+    "Load",
+    "Fan",
+    "Flow",
+    "Control",
+    "Level",
+    "Factor",
+    "Power",
+    "Data",
+    "SmallData",
+]
+cputhermometer_sensortypes = [
+    "Voltage",
+    "Clock",
+    "Temperature",
+    "Load",
+    "Fan",
+    "Flow",
+    "Control",
+    "Level",
+]
 
-# Create a TreeView widget
-tree = ttk.Treeview(root)
 
-# Define the columns
-tree["columns"] = ("Name", "Age")
+def initialize_openhardwaremonitor():
+    file = r"C:\Users\shelly ben zion\Desktop\Cyber project\UpToDater\Code\sources\DLLS\OpenHardwareMonitorLib.dll"
+    clr.AddReference(file)
 
-# Format the columns
-tree.column("#0", width=100)
-tree.column("Name", width=150)
-tree.column("Age", width=50)
+    from OpenHardwareMonitor import Hardware
 
-# Create the headers
-tree.heading("#0", text="Icon")
-tree.heading("Name", text="Name")
-tree.heading("Age", text="Age")
-
-# Define the icons
-icon_folder = tk.PhotoImage(file="folder_icon.png")
-icon_file = tk.PhotoImage(file="file_icon.png")
-
-# Add parent items
-parent1 = tree.insert("", "end", image=icon_folder, text="Parent 1", values=("John Doe", 30))
-parent2 = tree.insert("", "end", image=icon_folder, text="Parent 2", values=("Jane Smith", 25))
-
-# Add child items
-tree.insert(parent1, "end", image=icon_file, text="Child 1", values=("File 1", 10))
-tree.insert(parent1, "end", image=icon_file, text="Child 2", values=("File 2", 12))
-tree.insert(parent2, "end", image=icon_file, text="Child 3", values=("File 3", 8))
-tree.insert(parent2, "end", image=icon_file, text="Child 4", values=("File 4", 9))
-
-# Set the icons for the TreeView
-tree.tag_configure("folder", image=icon_folder)
-tree.tag_configure("file", image=icon_file)
-
-# Pack the TreeView widget
-tree.pack()
-
-# Run the main loop
-root.mainloop()
+    handle = Hardware.Computer()
+    handle.MainboardEnabled = True
+    handle.CPUEnabled = True
+    handle.RAMEnabled = True
+    handle.GPUEnabled = True
+    handle.HDDEnabled = True
+    handle.Open()
+    return handle
 
 
+def fetch_stats(handle):
+
+    for i in handle.Hardware:
+        i.Update()
+        for sensor in i.Sensors:
+            print(sensor.SensorType, sensor.Value)
+            #parse_sensor(sensor)
+        for j in i.SubHardware:
+            j.Update()
+            for subsensor in j.Sensors:
+                parse_sensor(subsensor)
 
 
+def parse_sensor(sensor):
+    if sensor.Value is not None:
+        if type(sensor).__module__ == "OpenHardwareMonitor.Hardware":
+            sensortypes = openhardwaremonitor_sensortypes
+            hardwaretypes = openhardwaremonitor_hwtypes
+            hardwaretypes = openhardwaremonitor_hwtypes
+        else:
+            return
 
+        print(
+            "%s %s Sensor #%i %s - %s\u00B0C"
+            % (
+                hardwaretypes[sensor.Hardware.HardwareType],
+                sensor.Hardware.Name,
+                sensor.Index,
+                sensor.Name,
+                sensor.Value,
+            )
+        )
+
+
+if __name__ == "__main__":
+    HardwareHandle = initialize_openhardwaremonitor()
+    fetch_stats(HardwareHandle)
