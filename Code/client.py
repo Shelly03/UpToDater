@@ -103,7 +103,6 @@ class client:
         
         # runs the exe as a daemon process
         subprocess.Popen(["pythonw", exe_path])
-
     
     def disconnect(self):
         # sends the server "bye" to notify disconnection

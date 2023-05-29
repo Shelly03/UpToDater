@@ -7,6 +7,7 @@ import threading
 import sched
 import wmi
 import os
+import pythoncom
 
 
 def get_virtual_mem():
@@ -84,28 +85,14 @@ def get_users_info():
         
 
 def __get_info(s_type, s_name):
-    for hardware in initialize_openhardwaremonitor():
-        for sensor in hardware.sensors:
-            if sensor.SensorType==s_type:
-                if sensor.Name == s_name:
-                    return sensor.Value
-
-def initialize_openhardwaremonitor():
-    file = r"C:\Shelly\שלי - עמל ב עבודות\2022-2023\Cyber\פרויקט גמר\Code\sources\OpenHardwareMonitor\OpenHardwareMonitorLib.dll"
-    clr.AddReference(file)
-
-    from OpenHardwareMonitor import Hardware
-
-    handle = Hardware.Computer()
-    handle.MainboardEnabled = True
-    handle.CPUEnabled = True
-    handle.RAMEnabled = True
-    handle.GPUEnabled = True
-    handle.HDDEnabled = True
-    handle.Open()
-    print(handle)
-    return handle.Hardware
-
+    pythoncom.CoInitialize()
+    w = wmi.WMI(namespace="root\OpenHardwareMonitor")
+    sensors = w.Sensor()
+    for sensor in sensors:
+        if sensor.SensorType==s_type:
+            if sensor.Name == s_name:
+                return sensor.Value
+            
 def get_cpu_temp():
     return __get_info('Temperature', 'CPU Package')
 
