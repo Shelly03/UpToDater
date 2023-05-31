@@ -1,4 +1,5 @@
 from datetime import datetime
+import platform
 import time
 import clr
 import pandas as pd
@@ -6,7 +7,7 @@ import psutil
 import threading
 import sched
 import wmi
-import os
+import cpuinfo
 import pythoncom
 
 
@@ -15,16 +16,24 @@ def get_virtual_mem():
     return psutil.virtual_memory().percent
 
 def get_drives_info():
-    drives_info = {}
+    drives_info = []
     
     # list of all drive letters
     drives = [disk.device for disk in psutil.disk_partitions()]
     
     # return info for each drive in dict
     for drive in drives:
-        drives_info[drive] = psutil.disk_usage(drive)
+        disk_info = psutil.disk_usage(drive)
+        drives_info.append({
+            'name' : drive,
+            'total' : disk_info.total,
+            'used' : disk_info.used,
+            'free ' : disk_info.free,
+            'percent' : disk_info.percent,
+        })
     
     return drives_info
+
 
 '''
 bytes_sent: number of bytes sent
@@ -37,7 +46,17 @@ dropin: total number of incoming packets which were dropped
 dropout: total number of outgoing packets which were dropped (always 0 on macOS and BSD)
 '''
 def get_network_info():
-    return psutil.net_io_counters()
+    info = psutil.net_io_counters()
+    return {
+        'bytes_sent' : info.bytes_sent,
+        'bytes_recv' : info.bytes_recv,
+        'packets_sent' : info.packets_sent,
+        'packets_recv' : info.packets_recv,
+        'errors_sending' :info.errout,
+        'errors_reciving' :info.errin,
+        'packets_dropped_sending' :info.dropout,
+        'packets_dropped_reciving' :info.dropin,
+    }
 
 '''
 fd: the socket file descriptor. If the connection refers to the current process this may be passed to socket.fromfd to obtain a usable socket object. On Windows and SunOS this is always set to -1.
@@ -49,8 +68,22 @@ status: represents the status of a TCP connection. The return value is one of th
 pid: the PID of the process which opened the socket, if retrievable, else None. On some platforms (e.g. Linux) the availability of this field changes depending on process privileges (root is needed).
 '''
 def get_connections_info():
-    return psutil.net_connections()
+    info = psutil.net_connections()
+    connections_info = []
+    for connection in info:
+        connections_info.append(
+            {
+                'family' : connection.family,
+                'type' : connection.type,
+                'local address' : connection.laddr,
+                'remote address' : connection.raddr,
+                'status' : connection.status,
+                'pid' : connection.pid
+            }
+        )
+    return connections_info
     
+
 '''
 Return the addresses associated to each NIC (network interface card) installed on the system as a dictionary whose keys are the NIC names and value is a list of named tuples for each address assigned to the NIC. Each named tuple includes 5 fields:
 
@@ -60,8 +93,9 @@ netmask: the netmask address (may be None).
 broadcast: the broadcast address (may be None).
 ptp: stands for “point to point”; it’s the destination address on a point to point interface (typically a VPN). broadcast and ptp are mutually exclusive. May be None.
 '''
-def get_network_interface_information():
-    return psutil.net_if_addrs()
+def get_network_interface_info():
+    info =  psutil.net_if_addrs()
+    return info
 
 '''
 percent: battery power left as a percentage.
@@ -109,7 +143,7 @@ def get_processes_info():
     # the list the contain all process dictionaries
     processes = []
     for process in psutil.process_iter():
-    # get all process info in one shot (more efficient, without making separate calls for each attribute)
+        # get all process info in one shot (more efficient, without making separate calls for each attribute)
         with process.oneshot():
             # get the process id
             pid = process.pid
@@ -173,4 +207,36 @@ def get_processes_info():
     # convert to proper date format
     df['create_time'] = df['create_time'].apply(datetime.strftime, args=("%Y-%m-%d %H:%M:%S",))
 
+def get_os():
+    pc = wmi.WMI()
+    os_info = pc.Win32_OperatingSystem()
+    return os_info[0].Name
 
+def get_processor():
+    pc = wmi.WMI()
+    return pc.Win32_Processor()[0].Name.strip()
+
+def get_hardware_info():
+    try:
+        d = {}
+        d['Processor'] = get_processor()
+        print(1)
+        d['OS'] = get_os()
+        print(2)
+        d['CPU'] = get_cpu()
+        print(3)
+        d['CPU temp'] = get_cpu_temp()
+        print(4)
+        d['GPU'] = get_gpu()
+        print(5)
+        d['GPU temp'] = get_gpu_temp()
+        print(6)
+        d['Memory'] = get_virtual_mem()
+        print(7)
+        d['Battery'] = get_battery_info()
+        print(8)
+        return d
+        
+    except Exception as e:
+        print(e)
+    

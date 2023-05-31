@@ -1,13 +1,16 @@
 
-
-
-
 import sqlite3
-
+from cryptography.fernet import Fernet
 
 class database:
 
     def __init__(self):
+        # key
+        file = open('key.key', 'rb') # rb = read bytes
+        self.key  = file.read()
+        file.close()
+        self.fernet = Fernet(self.key)
+        
         # create connection and cursor for the db
         self.db_name = "ipconnections.db"
         db_conn = sqlite3.connect(self.db_name)
@@ -58,46 +61,64 @@ class database:
         db_conn.commit()
         db_conn.close()
 
+    def get_id(self, ip, rows):
+        for row in rows:
+            decrypted_ip = self.fernet.decrypt(row[1]).decode()
+            if decrypted_ip == ip:
+                return row[0]
+
+
     def update_connection(self, ip, mac, status):
         db_conn = sqlite3.connect(self.db_name)
         db_cursor = db_conn.cursor()
+        
+        
+        encrypted_ip = self.fernet.encrypt(ip.encode())
+        encrypted_mac = self.fernet.encrypt(mac.encode())
+                
         # check if the ip is already in the table
         db_cursor.execute(
-                        f"SELECT * FROM {self.conn_table_name} WHERE {self.conn_table_columns[1]} = ?",
-                        (ip,),
+                        f"SELECT {self.conn_table_columns[0]},{self.conn_table_columns[1]} FROM {self.conn_table_name}",
                     )
-        row = db_cursor.fetchone()
+        rows = db_cursor.fetchall()
+        
+        wanted_id = self.get_id(ip, rows)
         
         # check if new ip or not
-        if row is not None:
+        if wanted_id is not None:
+            print('here', status)
             # if exist update connection status to the one given
             db_cursor.execute(
-                f"UPDATE {self.conn_table_name} SET {self.conn_table_columns[3]} = ? WHERE {self.conn_table_columns[1]}=?",
-                (status, ip),
+                f"UPDATE {self.conn_table_name} SET {self.conn_table_columns[3]} = ? WHERE {self.conn_table_columns[0]}=?",
+                (status, wanted_id),
             )
         else:
             # if not exist add the new ip to the table
             db_cursor.execute(
                 f"INSERT INTO {self.conn_table_name} ({', '.join(self.conn_table_columns[1:])}) VALUES (?, ?, ?)",
-                (ip, mac, status),
+                (encrypted_ip, encrypted_mac, status),
             )
         db_conn.commit()
         db_conn.close()
         
     def add_data(self, data):
-        print(data)
         db_conn = sqlite3.connect(self.db_name)
         db_cursor = db_conn.cursor()
         
         # find the id of the ip
         db_cursor.execute(
-            f"SELECT ID FROM {self.conn_table_name} WHERE {self.conn_table_columns[1]} = ?",
-            (data[0],),
+            f"SELECT {self.conn_table_columns[0]}, {self.conn_table_columns[1]} FROM {self.conn_table_name}",
         )
-        wanted_id = db_cursor.fetchone()
+        rows = db_cursor.fetchall()
+
+        wanted_id = self.get_id(data[0], rows)
+        
         # add the colomn with all of the info
-        values = [wanted_id[0]] + data[1:]
+        values = [wanted_id] + data[1:]
         db_cursor.execute(
             f"INSERT INTO {self.info_table_name} ({', '.join(self.info_table_columns)}) VALUES (?, ?, ?, ?, ?)",
             (values),
         )
+        db_conn.commit()
+        db_conn.close()
+
