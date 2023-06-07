@@ -20,7 +20,7 @@ class database:
         self.conn_table_name = "Connections"
         self.info_table_name = "CompInfo"
         
-        # columns for the table that describes the computers on the net
+        # columns for the table that describes the different computers on the net
         self.conn_table_columns = [
             "id",
             "ip_address",
@@ -28,7 +28,7 @@ class database:
             "connection_status",
         ]
         
-        # columns
+        # columns for the table that saves the computer's updates on their performance
         self.info_table_columns = [
             "id", 
             "cpu", 
@@ -69,6 +69,7 @@ class database:
 
 
     def update_connection(self, ip, mac, status):
+        # create new connection and cursor
         db_conn = sqlite3.connect(self.db_name)
         db_cursor = db_conn.cursor()
         
@@ -102,6 +103,7 @@ class database:
         db_conn.close()
         
     def add_data(self, data):
+        # create new connection and cursor
         db_conn = sqlite3.connect(self.db_name)
         db_cursor = db_conn.cursor()
         

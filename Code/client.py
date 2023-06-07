@@ -39,8 +39,6 @@ class client:
                 # try again
                 pass
 
-        # create lock
-        self.lock = Lock()
         
         # connect the socket responsinble for the info for the database
         self.info_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -52,6 +50,8 @@ class client:
         THREAD_ALIVE = True
         self.info_thread.start()
 
+        # create lock
+        self.lock = Lock()
         # open the exe file so i can use the dll
         self.open_dll_exe()
         
@@ -129,23 +129,33 @@ class client:
         while not DISCONNECTING:
             try:
                 info = self.main_socket.recv(1064).decode()
-                print(info)
                 if info == 'hardware':
                     data = snmp_server.get_hardware_info()
                 elif info == 'users':
-                    data = {'name' : 'shelly', 'name' : 'guest'}
+                    data =snmp_server.get_users_info()
                 elif info == 'net':
                     data = snmp_server.get_network_info()
                 elif info == 'connections':
                     data = snmp_server.get_connections_info()
                 else:
                     data = snmp_server.get_drives_info()
-                print(data)
                 data = str(data).encode()
-                self.main_socket.send(data)
+
+                # Calculate the number of packets required
+                total_packets = (len(data) // 1064) + 1
+
+                # Send the total number of packets
+                self.main_socket.send(str(total_packets).encode().zfill(4))
+
+                # Send the data packets
+                for packet_number in range(total_packets):
+                    start_index = packet_number * 1064
+                    end_index = (packet_number + 1) * 1064
+                    packet_data = data[start_index:end_index]
+                    self.main_socket.send(packet_data)
+
             except Exception as e:
                 print(e)
-
 
 c = client()
 time.sleep(30)

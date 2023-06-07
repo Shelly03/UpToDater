@@ -153,10 +153,9 @@ class GUI:
         self.tree.insert(parent, "end", text="Net Info")
         self.tree.insert(parent, "end", text="Drives Info")
         self.tree.insert(parent, "end", text="Users Info")
-        self.tree.insert(parent, "end", text="Connections Info")
         
 
-    def show_info(self, event):
+    def show_info(self):
         try:
             # Get the selected item
             selected_item = self.tree.selection()[0]
@@ -173,7 +172,6 @@ class GUI:
                 
                 # Get the data from the server using the parent IP address
                 if child_text == 'Hardware Info':
-                    print('here')
                     info = 'hardware'
                 elif child_text == 'Net Info':
                     info = 'net'
@@ -185,18 +183,29 @@ class GUI:
                     info = 'connections'
                 
                 try:
-                    data = self.server.get_info_from_computer(parent_ip, info)
-                    print(data)
+                    data = self.convert_to_dict(self.server.get_info_from_computer(parent_ip, info))
+
                     # Create a new window and display the data
                     new_window = tk.Toplevel(self.root)
-                    text = "\n".join(data)  # Convert the data to a string
-                    label = tk.Label(new_window, text=text)
-                    label.pack()
+                    for key, value in data.items():
+                        label = tk.Label(new_window, text=f"{key}: {value}")
+                        label.pack(padx=10, pady=5)
+                    
                 except Exception as e:
                     print(e)
                 
         except:
             pass
+
+    def convert_to_dict(self, str):
+        str = str.split(',')
+        dict = {}
+        for i in str:
+            i = i.strip('}{][')
+            i = i.split(':', 1)
+            print(i)
+            dict[i[0].strip("'\"")] = i[1].strip("'\"")
+        return dict
 
 if __name__ == "__main__":
     server_gui = GUI()

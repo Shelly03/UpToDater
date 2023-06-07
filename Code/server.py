@@ -123,13 +123,12 @@ class server:
 
     def run(self):
         while True:
-            # accept a new client
+            # accept a new client - main socket
             conn, addr = self.main_socket.accept()
+            # accept a new client - alert socket
             alert_conn, alert_addr = self.alert_socket.accept()
-            print("new client ", addr)
-            print("allert line ", alert_addr)
             
-            # put the socket in a global dict to handle 
+            # put the socket in a global dict to ask for information
             self.lock.acquire()
             global COMPUTERS
             COMPUTERS[addr[0]] = conn
@@ -144,20 +143,34 @@ class server:
                 ),
             )
 
+            # start the thread to get information about the client's cpu' temp and memory
             info_thread.start()
 
-    def get_info_from_computer(self, ip, info):
-        print('here')
-        global COMPUTERS
-        try:
-            self.lock.acquire()
-            socket = COMPUTERS[ip]
-            self.lock.release()
-            
-            socket.send(info.encode())
-            return socket.recv(1064).decode()
-            
-            
-        except:
-            print('no such ip')
+def get_info_from_computer(self, ip, info):
+    global COMPUTERS
+    try:
+        self.lock.acquire()
+        socket = COMPUTERS[ip]
+        self.lock.release()
+
+        # Send the information request to the client
+        socket.send(info.encode())
+
+        # Receive the total number of packets
+        total_packets = int(socket.recv(4).decode())
+
+        # Receive and combine the data packets
+        received_packets = []
+        for packet_number in range(total_packets):
+            data_packet = socket.recv(1064)
+            received_packets.append(data_packet)
+
+        # Combine the received packets
+        combined_data = b"".join(received_packets)
+
+        # Return the combined data to the caller
+        return combined_data.decode()
+
+    except:
+        print('no such IP')
 

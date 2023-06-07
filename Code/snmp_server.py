@@ -18,7 +18,7 @@ def get_virtual_mem():
 def get_drives_info():
     drives_info = []
     
-    # list of all drive letters
+    # list of all drives names
     drives = [disk.device for disk in psutil.disk_partitions()]
     
     # return info for each drive in dict
@@ -26,13 +26,16 @@ def get_drives_info():
         disk_info = psutil.disk_usage(drive)
         drives_info.append({
             'name' : drive,
-            'total' : disk_info.total,
-            'used' : disk_info.used,
-            'free ' : disk_info.free,
+            'total' : str(bytes_to_GB(disk_info.total)) + 'GB',
+            'used' : str(bytes_to_GB(disk_info.used)) + 'GB',
+            'free ' : str(bytes_to_GB(disk_info.free)) + 'GB',
             'percent' : disk_info.percent,
         })
     
     return drives_info
+
+def bytes_to_GB(bytes):
+    return round(bytes/1000000000, 1)
 
 
 '''
@@ -98,11 +101,10 @@ def get_network_interface_info():
     return info
 
 '''
+psutil.sensors_battery() returns:
 percent: battery power left as a percentage.
 secsleft: a rough approximation of how many seconds are left before the battery runs out of power. If the AC power cable is connected this is set to psutil.POWER_TIME_UNLIMITED. If it can’t be determined it is set to psutil.POWER_TIME_UNKNOWN.
 power_plugged: True if the AC power cable is connected, False if not or None if it can’t be determined.
-
-#TODO: check in laptop
 '''
 def get_battery_info():
     return psutil.sensors_battery()
@@ -115,32 +117,45 @@ started: the creation time as a floating point number expressed in seconds since
 pid: the PID of the login process (like sshd, tmux, gdm-session-worker, …). On Windows and OpenBSD this is always set to None.
 '''
 def get_users_info():
-        return psutil.users()
+    users_info = psutil.users()
+    users_names = []
+    for user in users_info:
+        # for each user add its name to the list
+        users_names.append(user[0])
+    return users_names
+
+print(get_users_info())
         
 
 def __get_info(s_type, s_name):
-    pythoncom.CoInitialize()
+    # connect to openHardwareMonitor
     w = wmi.WMI(namespace="root\OpenHardwareMonitor")
+    # get the computer sensors
     sensors = w.Sensor()
     for sensor in sensors:
         if sensor.SensorType==s_type:
             if sensor.Name == s_name:
+                # return the value according to the type and name given
                 return sensor.Value
             
 def get_cpu_temp():
+    # returns the CPU package temp
     return __get_info('Temperature', 'CPU Package')
 
 def get_gpu_temp():
+    # returns the GPU core temp
     return __get_info('Temperature', 'GPU Core')
 
 def get_cpu():
+    # returns the total CPU load
     return __get_info('Load', 'CPU Total')
 
 def get_gpu():
+    # returns the GPU core load
     return __get_info('Load', 'GPU Core')
 
 def get_processes_info():
-    # the list the contain all process dictionaries
+    # the list to contain all process dictionaries
     processes = []
     for process in psutil.process_iter():
         # get all process info in one shot (more efficient, without making separate calls for each attribute)
@@ -193,7 +208,8 @@ def get_processes_info():
             try:
                 username = process.username()
             except psutil.AccessDenied:
-                username = "N/A"
+                # os created this process
+                username = "N/A" 
             processes.append({
             'pid': pid, 'name': name, 'create_time': create_time,
             'cores': cores, 'cpu_usage': cpu_usage, 'status': status, 'nice': nice,
@@ -210,33 +226,32 @@ def get_processes_info():
 def get_os():
     pc = wmi.WMI()
     os_info = pc.Win32_OperatingSystem()
+    # returns the name of the operating system
     return os_info[0].Name
 
 def get_processor():
     pc = wmi.WMI()
+    # returns the processor name
     return pc.Win32_Processor()[0].Name.strip()
 
 def get_hardware_info():
-    try:
         d = {}
+        # processor type
         d['Processor'] = get_processor()
-        print(1)
+        # os type and version
         d['OS'] = get_os()
-        print(2)
+        # cpu usage
         d['CPU'] = get_cpu()
-        print(3)
+        # cpu package temprature
         d['CPU temp'] = get_cpu_temp()
-        print(4)
+        # gpu usage
         d['GPU'] = get_gpu()
-        print(5)
+        # gpu core temprature
         d['GPU temp'] = get_gpu_temp()
-        print(6)
+        # virtual memory
         d['Memory'] = get_virtual_mem()
-        print(7)
+        # battery information, None for desktop computer
         d['Battery'] = get_battery_info()
-        print(8)
         return d
         
-    except Exception as e:
-        print(e)
     
