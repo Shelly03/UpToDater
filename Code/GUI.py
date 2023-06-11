@@ -1,10 +1,14 @@
+import datetime
+import json
 import threading
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 from ttkthemes import ThemedStyle
 import sqlite3
 from server import server
 from cryptography.fernet import Fernet
+import pandas as pd
 
 
 class GUI:
@@ -150,12 +154,13 @@ class GUI:
     def create_tree_children(self, parent):
         # Insert child items under each parent row
         self.tree.insert(parent, "end", text="Hardware Info")
-        self.tree.insert(parent, "end", text="Net Info")
+        self.tree.insert(parent, "end", text="Network Info")
         self.tree.insert(parent, "end", text="Drives Info")
         self.tree.insert(parent, "end", text="Users Info")
+        self.tree.insert(parent, "end", text="Running Processes Info")
         
 
-    def show_info(self):
+    def show_info(self, event):
         try:
             # Get the selected item
             selected_item = self.tree.selection()[0]
@@ -170,42 +175,125 @@ class GUI:
                 # Get the child item's text
                 child_text = self.tree.item(selected_item, "text")
                 
+                # Create a new window and display the data
+                new_window = tk.Toplevel(self.root)
+                
                 # Get the data from the server using the parent IP address
                 if child_text == 'Hardware Info':
-                    info = 'hardware'
-                elif child_text == 'Net Info':
-                    info = 'net'
+                    self.display_hardware_info(self.server.get_info_from_computer(parent_ip, 'hardware'), new_window)
+                elif child_text == 'Network Info':
+                    self.display_network_info(self.server.get_info_from_computer(parent_ip, 'net'), new_window)
                 elif child_text == 'Drives Info':
-                    info = 'drives'
+                    self.display_drives_info(self.server.get_info_from_computer(parent_ip, 'drives'), new_window)
                 elif child_text == 'Users Info':
-                    info = 'users'
-                elif child_text == 'Connections Info':
-                    info = 'connections'
-                
-                try:
-                    data = self.convert_to_dict(self.server.get_info_from_computer(parent_ip, info))
+                    self.display_users_info(self.server.get_info_from_computer(parent_ip, 'users'), new_window)
+                elif child_text == 'Running Processes Info':
+                    self.open_file_question(parent_ip, new_window)
 
-                    # Create a new window and display the data
-                    new_window = tk.Toplevel(self.root)
-                    for key, value in data.items():
-                        label = tk.Label(new_window, text=f"{key}: {value}")
-                        label.pack(padx=10, pady=5)
-                    
-                except Exception as e:
-                    print(e)
-                
         except:
             pass
 
-    def convert_to_dict(self, str):
-        str = str.split(',')
-        dict = {}
-        for i in str:
-            i = i.strip('}{][')
-            i = i.split(':', 1)
-            print(i)
-            dict[i[0].strip("'\"")] = i[1].strip("'\"")
-        return dict
+    def display_hardware_info(self, data, window):
+        # convert the string to a dict
+        data = json.loads(data)
+        
+        window.title('Hardware Infornation')
+        
+        tree = ttk.Treeview(window, columns=('', '',), show='headings')
+
+        for key, value in data.items():
+            tree.insert('', tk.END, values=(key, value,))
+        tree.pack(expand=True, fill="both") 
+
+
+    def display_users_info(self, users, window):
+        # convert the string to a list
+        users = json.loads(users)
+        
+        window.title('Users Infornation')
+        
+        tree = ttk.Treeview(window, columns=('', '',), show='headings')
+
+        for i in range(len(users)):
+            tree.insert('', tk.END, values=(f'User{i+1}', users[i],))
+        tree.pack(expand=True, fill="both") 
+
+
+    def display_network_info(self, data, window):
+        # convert the string to a dict
+        data = json.loads(data)
+        
+        window.title('Network Infornation')
+        
+        tree = ttk.Treeview(window, columns=('', '',), show='headings')
+
+        for key, value in data.items():
+            row = tree.insert('', tk.END, values=(key.split(':')[0], value,))
+            
+        tree.pack(expand=True, fill="both") 
+
+    def display_drives_info(self, drives, window):
+        window.title('Drives Infornation')
+        tree = ttk.Treeview(window, columns=('', '',), show='tree headings')
+        
+        # convert the string to a list of dicts
+        drives = [json.loads(idx.replace("'", '"')) for idx in [drives]]
+        
+        for drive in drives[0]:
+            parent = tree.insert('', tk.END, values=(drive['name']), open=True)
+            for key, value in drive.items():
+                if key != 'name':
+                    tree.insert(parent, tk.END, values=(key, value))
+        tree.pack(expand=True, fill="both") 
+
+    def create_excel_file(self, data, ip):
+        # Generate timestamp
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        # Create folder path
+        folder_path = r"C:\Shelly\שלי - עמל ב עבודות\2022-2023\Cyber\פרויקט גמר\Code\running processes info"
+        
+        # Create Excel file name
+        file_name = f"processes of {ip} - {timestamp}.xlsx"
+        
+        # convert to pandas dataframe
+        data = [json.loads(idx.replace("'", '"')) for idx in [data]]
+        df = pd.DataFrame(data[0])
+        
+        # Create Excel file
+        file_path = f"{folder_path}/{file_name}"
+        df.to_excel(file_path, index=False)
+
+        # Open Excel file
+        try:
+            pd.ExcelFile(file_path)
+        except FileNotFoundError:
+            messagebox.showerror("Error", "File not found.")
+        else:
+            messagebox.showinfo("Success", "Excel file created successfully.")
+
+    def open_file_question(self, ip, new_window):
+        def handle_create_file():
+            self.create_excel_file(self.server.get_info_from_computer(ip, 'running processes'), ip)
+            new_window.destroy()
+
+        def handle_cancel():
+            new_window.destroy()
+
+        new_window.title("Open Excel File")
+
+        label = tk.Label(new_window, text="Do you want to get the information in an Excel file?")
+        label.pack(padx=10, pady=10)
+
+        button_frame = tk.Frame(new_window)
+        button_frame.pack(padx=10, pady=10)
+
+        create_file_button = tk.Button(button_frame, text="Yes, create a file", command=handle_create_file)
+        create_file_button.pack(side=tk.LEFT)
+
+        cancel_button = tk.Button(button_frame, text="Cancel", command=handle_cancel)
+        cancel_button.pack(side=tk.LEFT)
+
 
 if __name__ == "__main__":
     server_gui = GUI()

@@ -51,14 +51,14 @@ dropout: total number of outgoing packets which were dropped (always 0 on macOS 
 def get_network_info():
     info = psutil.net_io_counters()
     return {
-        'bytes_sent' : info.bytes_sent,
-        'bytes_recv' : info.bytes_recv,
-        'packets_sent' : info.packets_sent,
-        'packets_recv' : info.packets_recv,
-        'errors_sending' :info.errout,
-        'errors_reciving' :info.errin,
-        'packets_dropped_sending' :info.dropout,
-        'packets_dropped_reciving' :info.dropin,
+        "bytes_sent:number of bytes sent" : info.bytes_sent,
+        "bytes_recv:number of bytes received" : info.bytes_recv,
+        "packets_sent:number of packets sent" : info.packets_sent,
+        "packets_recv:number of packets received" : info.packets_recv,
+        "errin:total number of errors while receiving" :info.errout,
+        "errout:total number of errors while sending" :info.errin,
+        "dropin:total number of incoming packets which were dropped" :info.dropout,
+        "dropout:total number of outgoing packets which were dropped" :info.dropin,
     }
 
 '''
@@ -124,10 +124,10 @@ def get_users_info():
         users_names.append(user[0])
     return users_names
 
-print(get_users_info())
-        
-
 def __get_info(s_type, s_name):
+    # Initialize the COM library
+    pythoncom.CoInitialize()
+        
     # connect to openHardwareMonitor
     w = wmi.WMI(namespace="root\OpenHardwareMonitor")
     # get the computer sensors
@@ -136,7 +136,7 @@ def __get_info(s_type, s_name):
         if sensor.SensorType==s_type:
             if sensor.Name == s_name:
                 # return the value according to the type and name given
-                return sensor.Value
+                return round(sensor.Value, 2)
             
 def get_cpu_temp():
     # returns the CPU package temp
@@ -211,47 +211,47 @@ def get_processes_info():
                 # os created this process
                 username = "N/A" 
             processes.append({
-            'pid': pid, 'name': name, 'create_time': create_time,
+            'pid': pid, 'name': name, 'create_time': create_time.isoformat(),
             'cores': cores, 'cpu_usage': cpu_usage, 'status': status, 'nice': nice,
             'memory_usage': memory_usage, 'n_threads': n_threads, 'username': username,
             })
     return processes
-    # convert to pandas dataframe
-    df = pd.DataFrame(processes)
-    # set the process id as index of a process
-    df.set_index('pid', inplace=True)
-    # convert to proper date format
-    df['create_time'] = df['create_time'].apply(datetime.strftime, args=("%Y-%m-%d %H:%M:%S",))
+
 
 def get_os():
     pc = wmi.WMI()
     os_info = pc.Win32_OperatingSystem()
     # returns the name of the operating system
-    return os_info[0].Name
+    return os_info[0].Name.split('|')[0]
 
 def get_processor():
     pc = wmi.WMI()
     # returns the processor name
     return pc.Win32_Processor()[0].Name.strip()
 
+processor = get_processor()
+os = get_os()
+
 def get_hardware_info():
-        d = {}
-        # processor type
-        d['Processor'] = get_processor()
-        # os type and version
-        d['OS'] = get_os()
-        # cpu usage
-        d['CPU'] = get_cpu()
-        # cpu package temprature
-        d['CPU temp'] = get_cpu_temp()
-        # gpu usage
-        d['GPU'] = get_gpu()
-        # gpu core temprature
-        d['GPU temp'] = get_gpu_temp()
-        # virtual memory
-        d['Memory'] = get_virtual_mem()
-        # battery information, None for desktop computer
-        d['Battery'] = get_battery_info()
-        return d
-        
-    
+    print('getting hardware info')
+    d = {
+            # processor type
+            'Processor' : processor,
+            # os type and version
+            'OS' : os,
+            # cpu usage
+            'CPU':get_cpu(),
+            # gpu usage
+            'GPU':get_gpu(),
+            # cpu package temprature
+            'CPU temp' : get_cpu_temp(),
+            # gpu core temprature
+            'GPU temp':get_gpu_temp(),
+            # virtual memory
+            'Memory':get_virtual_mem(),
+            # battery information, None for desktop computer
+            'Battery':get_battery_info()
+        }
+    print('finished getting info')
+    return d
+

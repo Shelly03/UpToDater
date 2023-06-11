@@ -45,6 +45,8 @@ class database:
                     mac_address TEXT NOT NULL,
                     connection_status TEXT NOT NULL)"""
         )
+        
+        db_cursor.execute(f"UPDATE {self.conn_table_name} SET connection_status = 'off'")
 
         # create computers info table
         db_cursor.execute(
@@ -87,7 +89,6 @@ class database:
         
         # check if new ip or not
         if wanted_id is not None:
-            print('here', status)
             # if exist update connection status to the one given
             db_cursor.execute(
                 f"UPDATE {self.conn_table_name} SET {self.conn_table_columns[3]} = ? WHERE {self.conn_table_columns[0]}=?",

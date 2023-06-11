@@ -45,7 +45,7 @@ class server:
             while True:
 
                 try:
-                    data = client_conn.recv(1024).decode()
+                    data = client_conn.recv(4096).decode()
                     
                     if data == 'bye':
                         break
@@ -65,13 +65,11 @@ class server:
                         # Receive the number of packets to expect
                         num_packets_data = client_conn.recv(4)
                         num_packets = int.from_bytes(num_packets_data, byteorder="big")
-                        print(num_packets)
 
                         # Receive the serialized data packets and reassemble them
                         received_data = b""
                         for _ in range(num_packets):
                             packet = client_conn.recv(4096)
-                            print(packet)
                             received_data += packet
                         print(received_data.decode())
                         print(forbidden_process)
@@ -110,7 +108,6 @@ class server:
 
     def update_database_connection(self, client_address, status):
         self.lock.acquire()
-        print('here')
         self.database.update_connection(
             *[
                 client_address[0],
@@ -127,6 +124,8 @@ class server:
             conn, addr = self.main_socket.accept()
             # accept a new client - alert socket
             alert_conn, alert_addr = self.alert_socket.accept()
+            
+            print('> NEW CONNECTION ', addr)
             
             # put the socket in a global dict to ask for information
             self.lock.acquire()
@@ -146,31 +145,37 @@ class server:
             # start the thread to get information about the client's cpu' temp and memory
             info_thread.start()
 
-def get_info_from_computer(self, ip, info):
-    global COMPUTERS
-    try:
-        self.lock.acquire()
-        socket = COMPUTERS[ip]
-        self.lock.release()
+    def get_info_from_computer(self, ip, info):
+        global COMPUTERS
+        try:
+            self.lock.acquire()
+            socket = COMPUTERS[ip]
+            self.lock.release()
 
-        # Send the information request to the client
-        socket.send(info.encode())
+            # Send the information request to the client
+            socket.send(info.encode())
 
-        # Receive the total number of packets
-        total_packets = int(socket.recv(4).decode())
+            # Receive the total number of packets
+            got_number_of_packets = False
+            total_packets = 0
+            while not got_number_of_packets:
+                try:
+                    total_packets = int(socket.recv(4).decode())
+                    got_number_of_packets = True
+                except:
+                    pass
+            # Receive and combine the data packets
+            received_packets = []
+            for packet_number in range(total_packets):
+                data_packet = socket.recv(4096)
+                received_packets.append(data_packet)
 
-        # Receive and combine the data packets
-        received_packets = []
-        for packet_number in range(total_packets):
-            data_packet = socket.recv(1064)
-            received_packets.append(data_packet)
+            # Combine the received packets
+            combined_data = b"".join(received_packets)
+            
+            # Return the combined data to the caller
+            return combined_data.decode()
 
-        # Combine the received packets
-        combined_data = b"".join(received_packets)
-
-        # Return the combined data to the caller
-        return combined_data.decode()
-
-    except:
-        print('no such IP')
+        except Exception as e:
+            print(e)
 

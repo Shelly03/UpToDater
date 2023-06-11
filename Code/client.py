@@ -1,3 +1,6 @@
+import json
+import traceback
+import pythoncom 
 import socket
 import sys
 import psutil
@@ -25,9 +28,21 @@ FORBIDDEN_PROCESSES_NAMES = ["Notepad.exe"]
 
 class client:
     def __init__(self):
+        # create lock
+        self.lock = Lock()
+        
+        # open the exe file so i can use the dll
+        self.open_dll_exe()
+        
+        self.connect_to_server()
+
+
+    def connect_to_server(self):
+        print('connect to server')
         # create main socket
         self.main_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+        self.info_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
         # client tries to connect the server
         connection_established = False
         while not connection_established:
@@ -38,11 +53,10 @@ class client:
             except Exception as e:
                 # try again
                 pass
-
         
         # connect the socket responsinble for the info for the database
-        self.info_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.info_socket.connect((IP, ALERT_PORT))
+        print('connected')
 
         # run a thread in the background to send the info
         self.info_thread = threading.Thread(target=self.send_info)
@@ -50,32 +64,34 @@ class client:
         THREAD_ALIVE = True
         self.info_thread.start()
 
-        # create lock
-        self.lock = Lock()
-        # open the exe file so i can use the dll
-        self.open_dll_exe()
-        
         self.run()
 
 
     def send_info(self):
         init_time = time.time()
-        while THREAD_ALIVE:
-            self.lock.acquire()
-            if time.time() - init_time > CHECK_SECONDS:
-                check_time = str(
-                    time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
-                ).strip()
-                cpu = str(snmp_server.get_cpu()).strip()  # TODO: fix cpu
-                mem = str(snmp_server.get_virtual_mem()).strip()
-                temp = str(snmp_server.get_cpu_temp())
-                msg = str(", ".join([IP, cpu, temp, mem, check_time]))
-                self.info_socket.send(msg.encode())
+        try:
+            while THREAD_ALIVE:
+                self.lock.acquire()
+                if time.time() - init_time > CHECK_SECONDS:
+                    check_time = str(
+                        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+                    ).strip()
+                    cpu = str(snmp_server.get_cpu()).strip()  # TODO: fix cpu
+                    mem = str(snmp_server.get_virtual_mem()).strip()
+                    temp = str(snmp_server.get_cpu_temp())
+                    msg = str(", ".join([IP, cpu, temp, mem, check_time]))
+                    self.info_socket.send(msg.encode())
 
-                self.check_for_forbidden_proccesses()
+                    self.check_for_forbidden_proccesses()
 
-                init_time = time.time()
-            self.lock.release()
+                    init_time = time.time()
+                self.lock.release()
+        except Exception as e:
+            print(e)
+        finally:
+            self.info_socket.close()
+            self.connect_to_server()
+
 
     def check_for_forbidden_proccesses(self):
         processes = snmp_server.get_processes_info()
@@ -126,9 +142,9 @@ class client:
         self.main_socket.close()
         
     def run(self):
-        while not DISCONNECTING:
-            try:
-                info = self.main_socket.recv(1064).decode()
+        try:
+            while not DISCONNECTING:
+                info = self.main_socket.recv(4096).decode()
                 if info == 'hardware':
                     data = snmp_server.get_hardware_info()
                 elif info == 'users':
@@ -137,15 +153,17 @@ class client:
                     data = snmp_server.get_network_info()
                 elif info == 'connections':
                     data = snmp_server.get_connections_info()
+                elif info == 'running processes':
+                    data = snmp_server.get_processes_info()
                 else:
                     data = snmp_server.get_drives_info()
-                data = str(data).encode()
-
+                data = json.dumps(data).encode()
+                
                 # Calculate the number of packets required
                 total_packets = (len(data) // 1064) + 1
 
                 # Send the total number of packets
-                self.main_socket.send(str(total_packets).encode().zfill(4))
+                self.main_socket.send(str(total_packets).zfill(4).encode())
 
                 # Send the data packets
                 for packet_number in range(total_packets):
@@ -154,9 +172,11 @@ class client:
                     packet_data = data[start_index:end_index]
                     self.main_socket.send(packet_data)
 
-            except Exception as e:
-                print(e)
+        except Exception as e:
+            global THREAD_ALIVE
+            THREAD_ALIVE = False
+            self.main_socket.close()
+            print('disconnect')
 
 c = client()
-time.sleep(30)
-c.disconnect()
+
