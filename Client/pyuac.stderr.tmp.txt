@@ -1,0 +1,11 @@
+Error running main function as admin
+Traceback (most recent call last):
+  File "C:\Users\shell\AppData\Local\Programs\Python\Python39\lib\site-packages\pyuac\main_decorator.py", line 89, in main_requires_admin
+    rv = run_function(*args, **kwargs)
+  File "C:\Shelly\שלי - עמל ב עבודות\2022-2023\Cyber\פרויקט גמר\Client\client.py", line 136, in open_dll_exe
+    subprocess.Popen([exe_path])
+  File "C:\Users\shell\AppData\Local\Programs\Python\Python39\lib\subprocess.py", line 951, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "C:\Users\shell\AppData\Local\Programs\Python\Python39\lib\subprocess.py", line 1420, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+FileNotFoundError: [WinError 2] The system cannot find the file specified

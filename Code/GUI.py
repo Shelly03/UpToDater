@@ -12,48 +12,10 @@ import pandas as pd
 
 
 class GUI:
-    def refresh_data(self):
-        db_conn = sqlite3.connect('ipconnections.db')
-        db_cursor = db_conn.cursor()
-        
-        db_cursor.execute("SELECT * FROM Connections")
-        self.data = db_cursor.fetchall()
-        
-        # Clear the existing treeview items
-        self.tree.delete(*self.tree.get_children())
-
-        # Insert updated items into the treeview
-        for computer in self.data:
-            ip = self.fernet.decrypt(computer[1]).decode()
-            mac = self.fernet.decrypt(computer[2]).decode()
-            if computer[3] == "on":
-                parent = self.tree.insert(
-                    "",
-                    "end",
-                    text="",
-                    values=(ip, mac),
-                    open=True,
-                    tags="on",
-                )
-                self.tree.item(parent, image=self.on_icon, tags="on")
-                self.create_tree_children(parent)
-            else:
-                parent = self.tree.insert(
-                    "",
-                    "end",
-                    text="",
-                    values=(ip, mac),
-                    open=False,
-                    tags="off",
-                )
-                self.tree.item(parent, image=self.off_icon, tags="off")
-
-        # Schedule the next refresh
-        self.root.after(1000, self.refresh_data)
         
     def __init__(self):
         # key
-        file = open('key.key', 'rb') # rb = read bytes
+        file = open('sources/files/key.key', 'rb') # rb = read bytes
         self.key  = file.read()
         file.close()
         self.fernet = Fernet(self.key)
@@ -136,6 +98,46 @@ class GUI:
         self.switch.pack(padx=50, pady=10, side="bottom")
 
         self.root.mainloop()
+        
+
+    def refresh_data(self):
+        db_conn = sqlite3.connect('ipconnections.db')
+        db_cursor = db_conn.cursor()
+        
+        db_cursor.execute("SELECT * FROM Connections")
+        self.data = db_cursor.fetchall()
+        
+        # Clear the existing treeview items
+        self.tree.delete(*self.tree.get_children())
+
+        # Insert updated items into the treeview
+        for computer in self.data:
+            ip = self.fernet.decrypt(computer[1]).decode()
+            mac = self.fernet.decrypt(computer[2]).decode()
+            if computer[3] == "on":
+                parent = self.tree.insert(
+                    "",
+                    "end",
+                    text="",
+                    values=(ip, mac),
+                    open=True,
+                    tags="on",
+                )
+                self.tree.item(parent, image=self.on_icon, tags="on")
+                self.create_tree_children(parent)
+            else:
+                parent = self.tree.insert(
+                    "",
+                    "end",
+                    text="",
+                    values=(ip, mac),
+                    open=False,
+                    tags="off",
+                )
+                self.tree.item(parent, image=self.off_icon, tags="off")
+
+        # Schedule the next refresh
+        self.root.after(1000, self.refresh_data)
 
     def toggle(self):
         if self.switch_value:
@@ -293,6 +295,7 @@ class GUI:
 
         cancel_button = tk.Button(button_frame, text="Cancel", command=handle_cancel)
         cancel_button.pack(side=tk.LEFT)
+
 
 
 if __name__ == "__main__":

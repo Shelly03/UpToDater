@@ -1,0 +1,9 @@
+max_cpu:90
+max_cpu_temp:50
+max_mem:10
+
+forbidden_processes:
+msedge.exe
+msdge.exe
+
+email:shelly3278@gmail.com
