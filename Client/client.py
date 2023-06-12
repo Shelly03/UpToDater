@@ -18,7 +18,6 @@ import subprocess
 from pyuac import main_requires_admin
 import pandas as pd
 import os
-from joblib import dump
 from threading import Lock
 
 

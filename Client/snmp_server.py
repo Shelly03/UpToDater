@@ -7,7 +7,6 @@ import psutil
 import threading
 import sched
 import wmi
-import cpuinfo
 import pythoncom
 
 
