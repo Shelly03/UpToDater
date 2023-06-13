@@ -21,7 +21,7 @@ import os
 from threading import Lock
 
 
-IP = "127.0.0.1" # add file to store ip
+IP = "10.30.57.15" 
 MAIN_PORT = 65432
 ALERT_PORT = 65431
 
@@ -76,8 +76,11 @@ class client:
         print('connected')
 
         # get admin settings
-        self.admin_settings = json.loads(self.main_socket.recv(4096).decode())
-        self.write_settings_file(self.admin_settings)
+        try:
+            self.admin_settings = json.loads(self.main_socket.recv(4096).decode())
+            self.write_settings_file(self.admin_settings)
+        except:
+            self.connect_to_server()
 
 
         # run a thread in the background to send the info
@@ -173,7 +176,7 @@ class client:
                 
                 # Calculate the number of packets required
                 total_packets = (len(data) // 1064) + 1
-
+                print(total_packets)
                 # Send the total number of packets
                 self.main_socket.send(str(total_packets).zfill(4).encode())
 
@@ -183,8 +186,10 @@ class client:
                     end_index = (packet_number + 1) * 1064
                     packet_data = data[start_index:end_index]
                     self.main_socket.send(packet_data)
+                    print('sent packet')
 
         except Exception as e:
+            print(e)
             global THREAD_ALIVE
             THREAD_ALIVE = False
             self.main_socket.close()
