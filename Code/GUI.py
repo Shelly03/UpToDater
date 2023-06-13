@@ -253,7 +253,7 @@ class GUI:
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         # Create folder path
-        folder_path = r"C:\Shelly\שלי - עמל ב עבודות\2022-2023\Cyber\פרויקט גמר\Code\running processes info"
+        folder_path = r"running processes info"
         
         # Create Excel file name
         file_name = f"processes of {ip} - {timestamp}.xlsx"

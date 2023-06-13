@@ -21,7 +21,7 @@ import os
 from threading import Lock
 
 
-IP = "127.0.0.1" # add file to store ip
+IP = "10.30.57.8" # add file to store ip
 MAIN_PORT = 65432
 ALERT_PORT = 65431
 
