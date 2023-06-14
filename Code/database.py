@@ -6,7 +6,7 @@ class database:
 
     def __init__(self):
         # key
-        file = open('key.key', 'rb') # rb = read bytes
+        file = open(r'sources\Files\key.key', 'rb') # rb = read bytes
         self.key  = file.read()
         file.close()
         self.fernet = Fernet(self.key)

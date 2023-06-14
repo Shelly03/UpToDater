@@ -21,7 +21,8 @@ import os
 from threading import Lock
 
 
-IP = "10.30.57.15" 
+IP = "192.168.1.160" 
+
 MAIN_PORT = 65432
 ALERT_PORT = 65431
 
@@ -160,6 +161,7 @@ class client:
         try:
             while not DISCONNECTING:
                 info = self.main_socket.recv(4096).decode()
+                print(info)
                 if info == 'hardware':
                     data = snmp_server.get_hardware_info()
                 elif info == 'users':
@@ -174,11 +176,12 @@ class client:
                     data = snmp_server.get_drives_info()
                 data = json.dumps(data).encode()
                 
-                # Calculate the number of packets required
+                self.main_socket.send(data)
+                '''# Calculate the number of packets required
                 total_packets = (len(data) // 1064) + 1
                 print(total_packets)
                 # Send the total number of packets
-                self.main_socket.send(str(total_packets).zfill(4).encode())
+                self.main_socket.send(str(total_packets).encode())
 
                 # Send the data packets
                 for packet_number in range(total_packets):
@@ -186,7 +189,7 @@ class client:
                     end_index = (packet_number + 1) * 1064
                     packet_data = data[start_index:end_index]
                     self.main_socket.send(packet_data)
-                    print('sent packet')
+                    print('sent packet')'''
 
         except Exception as e:
             print(e)

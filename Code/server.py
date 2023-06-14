@@ -32,8 +32,6 @@ class server:
         self.alert_socket.listen(5)
         print("> INFO SERVER ON")
 
-        self.main_socket.send(json.dumps(self.get_admin_settings(ADMIN_SETTINGS_PATH)).encode())
-
         # create lock instance
         self.lock = Lock()
 
@@ -136,6 +134,8 @@ class server:
             COMPUTERS[addr[0]] = conn
             self.lock.release()
 
+            conn.send(json.dumps(self.get_admin_settings(ADMIN_SETTINGS_PATH)).encode())
+
             # thread that supplies client info
             info_thread = threading.Thread(
                 target=self.get_comp_info,
@@ -171,6 +171,7 @@ class server:
             received_packets = []
             for packet_number in range(total_packets):
                 data_packet = socket.recv(4096)
+                print('got packet')
                 received_packets.append(data_packet)
 
             # Combine the received packets
