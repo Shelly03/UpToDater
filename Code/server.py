@@ -11,7 +11,6 @@ from database import database
 
 MAIN_PORT = 65432
 ALERT_PORT = 65431
-ADMIN_SETTINGS_PATH = 'sources\Files\Admin.txt'
 
 # dict to save the ip and socket of computers
 COMPUTERS = {}
@@ -134,7 +133,7 @@ class server:
             COMPUTERS[addr[0]] = conn
             self.lock.release()
 
-            conn.send(json.dumps(self.get_admin_settings(ADMIN_SETTINGS_PATH)).encode())
+            conn.send(json.dumps(self.database.get_admin_settings()).encode())
 
             # thread that supplies client info
             info_thread = threading.Thread(
@@ -184,31 +183,4 @@ class server:
             print(e)
             
             
-    def get_admin_settings(self, path):
-        admin_data = {
-        "max_cpu": None,
-        "max_cpu_temp": None,
-        "max_mem": None,
-        "forbidden_processes": [],
-        "email": None
-        }
     
-        with open(path, 'r') as file:
-            lines = file.readlines()
-            
-            for line in lines:
-                line = line.strip()
-                
-                if line.startswith("max_cpu:"):
-                    admin_data["max_cpu"] = int(line.split(":")[1])
-                elif line.startswith("max_cpu_temp:"):
-                    admin_data["max_cpu_temp"] = int(line.split(":")[1])
-                elif line.startswith("max_mem:"):
-                    admin_data["max_mem"] = int(line.split(":")[1])
-                elif line.startswith('"') and line.endswith('"') and line != '"process 1"':
-                    admin_data["forbidden_processes"].append(line.strip('"'))
-                elif line.startswith("email:"):
-                    admin_data["email"] = line.split(":")[1].strip('"')
-    
-        return admin_data
-

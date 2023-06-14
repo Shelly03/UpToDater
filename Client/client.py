@@ -97,23 +97,24 @@ class client:
         init_time = time.time()
         try:
             while THREAD_ALIVE:
-                self.lock.acquire()
                 if time.time() - init_time > TIME_BETWEEN_CHECKS:
+                    self.lock.acquire()
                     check_time = str(
                         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
                     ).strip()
                     cpu = str(snmp_server.get_cpu()).strip()  # TODO: fix cpu
                     mem = str(snmp_server.get_virtual_mem()).strip()
                     temp = str(snmp_server.get_cpu_temp())
-                    msg = str(", ".join([IP, cpu, temp, mem, check_time]))
+                    msg = str(", ".join([cpu, temp, mem, check_time]))
                     self.info_socket.send(msg.encode())
 
                     self.check_performance()
 
                     init_time = time.time()
-                self.lock.release()
+                    self.lock.release()
         except Exception as e:
             print(e)
+            print('117')
         finally:
             self.info_socket.close()
             self.connect_to_server()
@@ -192,7 +193,7 @@ class client:
                     print('sent packet')'''
 
         except Exception as e:
-            print(e)
+            print(e, '196')
             global THREAD_ALIVE
             THREAD_ALIVE = False
             self.main_socket.close()

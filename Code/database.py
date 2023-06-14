@@ -2,6 +2,8 @@
 import sqlite3
 from cryptography.fernet import Fernet
 
+ADMIN_SETTINGS_PATH = 'sources\Files\Admin.txt'
+
 class database:
 
     def __init__(self):
@@ -124,4 +126,34 @@ class database:
         )
         db_conn.commit()
         db_conn.close()
+
+    def get_admin_settings(self):
+        admin_data = {
+        "max_cpu": None,
+        "max_cpu_temp": None,
+        "max_mem": None,
+        "forbidden_processes": [],
+        "email": None
+        }
+    
+        with open(ADMIN_SETTINGS_PATH, 'r') as file:
+            lines = file.readlines()
+            
+            for line in lines:
+                line = line.strip()
+                
+                if line.startswith("max_cpu:"):
+                    admin_data["max_cpu"] = int(line.split(":")[1])
+                elif line.startswith("max_cpu_temp:"):
+                    admin_data["max_cpu_temp"] = int(line.split(":")[1])
+                elif line.startswith("max_mem:"):
+                    admin_data["max_mem"] = int(line.split(":")[1])
+                elif line.startswith('"') and line.endswith('"') and line != '"process 1"':
+                    admin_data["forbidden_processes"].append(line.strip('"'))
+                elif line.startswith("email:"):
+                    admin_data["email"] = line.split(":")[1].strip('"')
+    
+        return admin_data
+
+
 
