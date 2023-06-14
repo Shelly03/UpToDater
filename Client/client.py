@@ -21,7 +21,8 @@ import os
 from threading import Lock
 
 
-IP = "10.30.57.8" # add file to store ip
+IP = "192.168.1.160" 
+
 MAIN_PORT = 65432
 ALERT_PORT = 65431
 
@@ -76,8 +77,11 @@ class client:
         print('connected')
 
         # get admin settings
-        self.admin_settings = json.loads(self.main_socket.recv(4096).decode())
-        self.write_settings_file(self.admin_settings)
+        try:
+            self.admin_settings = json.loads(self.main_socket.recv(4096).decode())
+            self.write_settings_file(self.admin_settings)
+        except:
+            self.connect_to_server()
 
 
         # run a thread in the background to send the info
@@ -93,23 +97,24 @@ class client:
         init_time = time.time()
         try:
             while THREAD_ALIVE:
-                self.lock.acquire()
                 if time.time() - init_time > TIME_BETWEEN_CHECKS:
+                    self.lock.acquire()
                     check_time = str(
                         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
                     ).strip()
                     cpu = str(snmp_server.get_cpu()).strip()  # TODO: fix cpu
                     mem = str(snmp_server.get_virtual_mem()).strip()
                     temp = str(snmp_server.get_cpu_temp())
-                    msg = str(", ".join([IP, cpu, temp, mem, check_time]))
+                    msg = str(", ".join([cpu, temp, mem, check_time]))
                     self.info_socket.send(msg.encode())
 
                     self.check_performance()
 
                     init_time = time.time()
-                self.lock.release()
+                    self.lock.release()
         except Exception as e:
             print(e)
+            print('117')
         finally:
             self.info_socket.close()
             self.connect_to_server()
@@ -157,6 +162,7 @@ class client:
         try:
             while not DISCONNECTING:
                 info = self.main_socket.recv(4096).decode()
+                print(info)
                 if info == 'hardware':
                     data = snmp_server.get_hardware_info()
                 elif info == 'users':
@@ -171,11 +177,12 @@ class client:
                     data = snmp_server.get_drives_info()
                 data = json.dumps(data).encode()
                 
-                # Calculate the number of packets required
+                self.main_socket.send(data)
+                '''# Calculate the number of packets required
                 total_packets = (len(data) // 1064) + 1
-
+                print(total_packets)
                 # Send the total number of packets
-                self.main_socket.send(str(total_packets).zfill(4).encode())
+                self.main_socket.send(str(total_packets).encode())
 
                 # Send the data packets
                 for packet_number in range(total_packets):
@@ -183,8 +190,10 @@ class client:
                     end_index = (packet_number + 1) * 1064
                     packet_data = data[start_index:end_index]
                     self.main_socket.send(packet_data)
+                    print('sent packet')'''
 
         except Exception as e:
+            print(e, '196')
             global THREAD_ALIVE
             THREAD_ALIVE = False
             self.main_socket.close()

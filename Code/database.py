@@ -1,6 +1,8 @@
 import sqlite3
 from cryptography.fernet import Fernet
 
+ADMIN_SETTINGS_PATH = "sources\Files\Admin.txt"
+
 
 class database:
     def __init__(self):
@@ -59,13 +61,13 @@ class database:
         db_conn.close()
 
     def get_id(self, ip, rows):
-        print('ip: ', ip)
+        print("ip: ", ip)
         for row in rows:
             decrypted_ip = self.fernet.decrypt(row[1]).decode()
-            print("dec ip: ",decrypted_ip)
+            print("dec ip: ", decrypted_ip)
             if decrypted_ip == ip:
                 return row[0]
-        return 'not found'
+        return "not found"
 
     def update_connection(self, ip, mac, status):
         # create new connection and cursor
@@ -103,21 +105,53 @@ class database:
         # create new connection and cursor
         db_conn = sqlite3.connect(self.db_name)
         db_cursor = db_conn.cursor()
-        print('connected')
+        print("connected")
         # find the id of the ip
         db_cursor.execute(
             f"SELECT {self.conn_table_columns[0]}, {self.conn_table_columns[1]} FROM {self.conn_table_name}",
         )
         rows = db_cursor.fetchall()
-        print('got rows ', rows)
+        print("got rows ", rows)
         wanted_id = self.get_id(data[0], rows)
-        print('wanted id: ', wanted_id)
+        print("wanted id: ", wanted_id)
         # add the row with all of the info
         values = [wanted_id] + data[1:]
         db_cursor.execute(
             f"INSERT INTO {self.info_table_name} ({', '.join(self.info_table_columns)}) VALUES (?, ?, ?, ?, ?)",
             (values),
         )
-        print('inserted data')
+        print("inserted data")
         db_conn.commit()
         db_conn.close()
+
+    def get_admin_settings(self):
+        admin_data = {
+            "max_cpu": None,
+            "max_cpu_temp": None,
+            "max_mem": None,
+            "forbidden_processes": [],
+            "email": None,
+        }
+
+        with open(ADMIN_SETTINGS_PATH, "r") as file:
+            lines = file.readlines()
+
+            for line in lines:
+                line = line.strip()
+
+                if line.startswith("max_cpu:"):
+                    admin_data["max_cpu"] = int(line.split(":")[1])
+                elif line.startswith("max_cpu_temp:"):
+                    admin_data["max_cpu_temp"] = int(line.split(":")[1])
+                elif line.startswith("max_mem:"):
+                    admin_data["max_mem"] = int(line.split(":")[1])
+                elif (
+                    line.startswith('"')
+                    and line.endswith('"')
+                    and line != '"process 1"'
+                ):
+                    admin_data["forbidden_processes"].append(line.strip('"'))
+                elif line.startswith("email:"):
+                    admin_data["email"] = line.split(":")[1].strip('"')
+
+        return admin_data
