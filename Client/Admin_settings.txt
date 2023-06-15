@@ -1,9 +1,9 @@
-max_cpu:70
+max_cpu:0
 max_cpu_temp:90
-max_mem:50
+max_mem:10
 
 forbidden_processes:
 msedge.exe
 msdge.exe
 
-email:user
+email:shelly3278@gmail.com

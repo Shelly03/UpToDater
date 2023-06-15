@@ -106,7 +106,10 @@ secsleft: a rough approximation of how many seconds are left before the battery 
 power_plugged: True if the AC power cable is connected, False if not or None if it can’t be determined.
 '''
 def get_battery_info():
-    return psutil.sensors_battery()
+    battery_info = psutil.sensors_battery()
+    if battery_info != None:
+        battery_info = battery_info.percent
+    return battery_info
 
 '''
 name: the name of the user.
