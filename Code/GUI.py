@@ -9,6 +9,7 @@ import sqlite3
 from server import server
 from cryptography.fernet import Fernet
 import pandas as pd
+import WOL
 
 
 class GUI:
@@ -33,6 +34,8 @@ class GUI:
         # on and off icons
         self.on_icon = tk.PhotoImage(file="sources/Images/green_dot.png")
         self.off_icon = tk.PhotoImage(file="sources/Images/red_dot.png")
+        self.dark_on_icon = tk.PhotoImage(file="sources/Images/dark_green_dot.png")
+        self.dark_off_icon = tk.PhotoImage(file="sources/Images/dark_red_dot.png")
 
         # Create the sidebar
         self.sidebar = ttk.Frame(self.root, width=200)
@@ -64,6 +67,7 @@ class GUI:
         self.tree.column("mac", width=150, minwidth=150)
 
         # Set the icons for the TreeView
+        self.initialize_icons()
         self.tree.tag_configure("on", image=self.on_icon)
         self.tree.tag_configure("off", image=self.off_icon)
 
@@ -83,7 +87,7 @@ class GUI:
 
         # Load light and dark mode images
         self.light = tk.PhotoImage(file="sources/Images/lightMode.png")
-        self.dark = tk.PhotoImage(file="sources/Images/darkMode.png")
+        self.dark = tk.PhotoImage(file="sources/Images/darkdarkMode.png")
 
         # Create a button to toggle between light and dark themes
         self.switch = tk.Button(
@@ -134,8 +138,47 @@ class GUI:
                 )
                 self.tree.item(parent, image=self.off_icon, tags="off")
 
+        # Create the right-click context menu
+        self.wol_menu = tk.Menu(self.root, tearoff=0)
+
+        # Add "Wake on LAN" option to the menu
+        self.wol_menu.add_command(label="Wake on LAN")
+
+        # Bind right-click event to the treeview
+        self.tree.bind("<Button-3>", self.wol_right_click)
+
+        # Attach the menu to the treeview
+        self.tree.bind("<Button-3>", lambda event: self.tree.focus(), add="+")
+        self.tree.bind(
+            "<Button-3>",
+            lambda event: self.wol_menu.post(event.x_root, event.y_root),
+            add="+",
+        )
+
         # Schedule the next refresh
         self.root.after(1000, self.refresh_data)
+
+    def wol_right_click(self, event):
+        item = self.tree.focus()  # Get the selected item
+        if (
+            item and self.tree.item(item, "tags") == "off"
+        ):  # Check if the selected item has "off" tag
+            mac_address = self.tree.set(
+                item, "mac"
+            )  # Get the MAC address from the selected item
+            self.wol_menu.entryconfigure(
+                "Wake on LAN", command=lambda: WOL.send_magic_packet(mac_address)
+            )
+            self.wol_menu.tk_popup(event.x_root, event.y_root)
+
+    def initialize_icons(self):
+        # Initialize the on and off icons based on the current theme
+        if self.style.theme_use() == "equilux":
+            self.on_icon = tk.PhotoImage(file="sources/Images/dark_green_dot.png")
+            self.off_icon = tk.PhotoImage(file="sources/Images/dark_red_dot.png")
+        else:
+            self.on_icon = tk.PhotoImage(file="sources/Images/green_dot.png")
+            self.off_icon = tk.PhotoImage(file="sources/Images/red_dot.png")
 
     def toggle(self):
         if self.switch_value:
@@ -150,6 +193,10 @@ class GUI:
             self.switch.config(image=self.light, bg="white", activebackground="white")
             self.logo_label.config(image=self.light_logo)
             self.switch_value = True
+
+        self.initialize_icons()  # Update the icons based on the new theme
+        self.tree.tag_configure("on", image=self.on_icon)
+        self.tree.tag_configure("off", image=self.off_icon)
 
     def create_tree_children(self, parent):
         # Insert child items under each parent row

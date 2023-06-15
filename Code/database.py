@@ -2,7 +2,7 @@ import sqlite3
 from cryptography.fernet import Fernet
 
 ADMIN_SETTINGS_PATH = "sources\Files\Admin.txt"
-
+POP_UPS = []
 
 class database:
     def __init__(self):
@@ -105,7 +105,7 @@ class database:
         # create new connection and cursor
         db_conn = sqlite3.connect(self.db_name)
         db_cursor = db_conn.cursor()
-        print("connected")
+        
         # find the id of the ip
         db_cursor.execute(
             f"SELECT {self.conn_table_columns[0]}, {self.conn_table_columns[1]} FROM {self.conn_table_name}",
@@ -120,9 +120,24 @@ class database:
             f"INSERT INTO {self.info_table_name} ({', '.join(self.info_table_columns)}) VALUES (?, ?, ?, ?, ?)",
             (values),
         )
-        print("inserted data")
+        
         db_conn.commit()
         db_conn.close()
+
+        self.check_for_pop_ups(data)
+    
+    def check_for_pop_ups(self, data):
+        settings = self.get_admin_settings()
+        print(settings)
+        global POP_UPS
+
+        if float(data[1]) > settings['max_cpu']:
+            POP_UPS.append({data[0]:['cpu', data[1]]})
+        if float(data[2]) > settings['max_cpu_temp']:
+            POP_UPS.append({data[0]:['cpu', data[2]]})
+        if float(data[3]) > settings['max_mem']:
+            POP_UPS.append({data[0]:['cpu', data[2]]})
+        print('popups', POP_UPS)
 
     def get_admin_settings(self):
         admin_data = {

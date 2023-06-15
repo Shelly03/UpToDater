@@ -72,9 +72,11 @@ class server:
                         print(received_data.decode())
                         print(forbidden_process)
 
-                except Exception as e:
+                except WindowsError:
                     break
-        except:
+                except Exception as e:
+                    print(e)
+        except Exception as e:
             pass
         finally:
             # finally close the socket

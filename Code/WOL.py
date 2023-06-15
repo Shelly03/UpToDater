@@ -19,6 +19,4 @@ def send_magic_packet(mac_address):
     # Send the magic packet
     sendp(packet, verbose=0)
 
-# Usage example
-mac_address = '00:11:22:33:44:55'  # Replace with the MAC address of the target machine
-send_magic_packet(mac_address)
+
