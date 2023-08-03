@@ -67,7 +67,6 @@ class database:
             print("dec ip: ", decrypted_ip)
             if decrypted_ip == ip:
                 return row[0]
-        return "not found"
 
     def update_connection(self, ip, mac, status):
         # create new connection and cursor
@@ -84,21 +83,24 @@ class database:
         rows = db_cursor.fetchall()
 
         wanted_id = self.get_id(ip, rows)
-
+        print(wanted_id)
         # check if new ip or not
         if wanted_id is not None:
+            print('if')
             # if exist update connection status to the one given
             db_cursor.execute(
                 f"UPDATE {self.conn_table_name} SET {self.conn_table_columns[3]} = ? WHERE {self.conn_table_columns[0]}=?",
                 (status, wanted_id),
             )
         else:
+            print('else')
             # if not exist add the new ip to the table
             db_cursor.execute(
                 f"INSERT INTO {self.conn_table_name} ({', '.join(self.conn_table_columns[1:])}) VALUES (?, ?, ?)",
                 (encrypted_ip, encrypted_mac, status),
             )
         db_conn.commit()
+        print('commited')
         db_conn.close()
 
     def add_data(self, data):
@@ -170,3 +172,4 @@ class database:
                     admin_data["email"] = line.split(":")[1].strip('"')
 
         return admin_data
+    

@@ -5,7 +5,7 @@ If you want there to be checks on the cpu usage, cpu temprature and memory of th
 
 max_cpu:0
 max_cpu_temp:90
-max_mem:10
+max_mem:0
 
 If you want to declare forbiden processes and get a notification when they run on the computers in your system, make sure to write them here in this way
 "process 1"
