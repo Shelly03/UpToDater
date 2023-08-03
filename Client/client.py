@@ -100,29 +100,39 @@ class client:
 
     def send_info(self):
         init_time = time.time()
-        try:
-            while THREAD_ALIVE:
+        while THREAD_ALIVE:
+            try:
                 if time.time() - init_time > TIME_BETWEEN_CHECKS:
                     self.lock.acquire()
+                    print('sending check info')
                     check_time = str(
                         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
                     ).strip()
-                    cpu = str(snmp_server.get_cpu()).strip()  # TODO: fix cpu
+                    cpu = str(snmp_server.get_cpu()).strip() 
                     mem = str(snmp_server.get_virtual_mem()).strip()
                     temp = str(snmp_server.get_cpu_temp())
                     msg = str(", ".join([cpu, temp, mem, check_time]))
                     self.info_socket.send(msg.encode())
-
+                    print('sent')
                     self.check_performance()
 
                     init_time = time.time()
                     self.lock.release()
+<<<<<<< HEAD
         except Exception as e:
             print(e)
             print("117")
         finally:
             self.info_socket.close()
             self.connect_to_server()
+=======
+            except Exception as e:
+                print(e)
+                print('117')
+
+        self.info_socket.close()
+        self.connect_to_server()
+>>>>>>> 2eeae4b687ee5c86ef64fe12b89b1ce36a37d0a9
 
     def send_procmon(self, processes, socket):
         data = str(processes)
