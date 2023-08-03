@@ -1,5 +1,5 @@
-max_cpu:90
-max_cpu_temp:50
+max_cpu:0
+max_cpu_temp:90
 max_mem:10
 
 forbidden_processes:

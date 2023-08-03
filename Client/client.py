@@ -7,7 +7,7 @@ import json
 import smtplib
 import ssl
 import traceback
-import pythoncom 
+import pythoncom
 import socket
 import sys
 import psutil
@@ -18,42 +18,46 @@ import subprocess
 from pyuac import main_requires_admin
 import pandas as pd
 import os
-from joblib import dump
 from threading import Lock
 
 
-IP = "127.0.0.1" # add file to store ip
+IP = "192.168.1.160"
+
 MAIN_PORT = 65432
 ALERT_PORT = 65431
 
 TIME_BETWEEN_CHECKS = 30
 TIME_BETWEEN_EMAILS = 1800
-TIME_TRACKER = {'cpu':time.time(), 'temp':time.time(), 'mem':time.time(), 'forbidden_processes':time.time()}
+TIME_TRACKER = {
+    "cpu": time.time(),
+    "temp": time.time(),
+    "mem": time.time(),
+    "forbidden_processes": time.time(),
+}
 
 THREAD_ALIVE = True
 DISCONNECTING = False
 
-NV_PASSWORD =  'wmwhkhwgbbklsevo'
-NV_EMAIL = 'netvigilantnotifier@gmail.com'
+NV_PASSWORD = "wmwhkhwgbbklsevo"
+NV_EMAIL = "netvigilantnotifier@gmail.com"
 
 
 class client:
     def __init__(self):
         # create lock
         self.lock = Lock()
-        
+
         # open the exe file so i can use the dll
         self.open_dll_exe()
-        
+
         self.connect_to_server()
 
-
     def connect_to_server(self):
-        print('connect to server')
+        print("connect to server")
         # create main socket
         self.main_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.info_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        
+
         init_time = time.time()
         self.admin_settings = self.get_settings_file()
         # client tries to connect the server
@@ -67,19 +71,24 @@ class client:
                 # try again
                 pass
             finally:
-                if time.time() - init_time > TIME_BETWEEN_CHECKS and self.admin_settings != '':
-                    print('started check')
+                if (
+                    time.time() - init_time > TIME_BETWEEN_CHECKS
+                    and self.admin_settings != ""
+                ):
+                    print("started check")
                     self.check_performance()
                     init_time = time.time()
-        
+
         # connect the socket responsinble for the info for the database
         self.info_socket.connect((IP, ALERT_PORT))
-        print('connected')
+        print("connected")
 
         # get admin settings
-        self.admin_settings = json.loads(self.main_socket.recv(4096).decode())
-        self.write_settings_file(self.admin_settings)
-
+        try:
+            self.admin_settings = json.loads(self.main_socket.recv(4096).decode())
+            self.write_settings_file(self.admin_settings)
+        except:
+            self.connect_to_server()
 
         # run a thread in the background to send the info
         self.info_thread = threading.Thread(target=self.send_info)
@@ -89,31 +98,41 @@ class client:
 
         self.run()
 
-
     def send_info(self):
         init_time = time.time()
-        try:
-            while THREAD_ALIVE:
-                self.lock.acquire()
+        while THREAD_ALIVE:
+            try:
                 if time.time() - init_time > TIME_BETWEEN_CHECKS:
+                    self.lock.acquire()
+                    print('sending check info')
                     check_time = str(
                         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
                     ).strip()
-                    cpu = str(snmp_server.get_cpu()).strip()  # TODO: fix cpu
+                    cpu = str(snmp_server.get_cpu()).strip() 
                     mem = str(snmp_server.get_virtual_mem()).strip()
                     temp = str(snmp_server.get_cpu_temp())
-                    msg = str(", ".join([IP, cpu, temp, mem, check_time]))
+                    msg = str(", ".join([cpu, temp, mem, check_time]))
                     self.info_socket.send(msg.encode())
-
+                    print('sent')
                     self.check_performance()
 
                     init_time = time.time()
-                self.lock.release()
+                    self.lock.release()
+<<<<<<< HEAD
         except Exception as e:
             print(e)
+            print("117")
         finally:
             self.info_socket.close()
             self.connect_to_server()
+=======
+            except Exception as e:
+                print(e)
+                print('117')
+
+        self.info_socket.close()
+        self.connect_to_server()
+>>>>>>> 2eeae4b687ee5c86ef64fe12b89b1ce36a37d0a9
 
     def send_procmon(self, processes, socket):
         data = str(processes)
@@ -137,10 +156,10 @@ class client:
         # Specify the path to the EXE file
         exe_path = r"sources\OpenHardwareMonitor\OpenHardwareMonitor.exe"
         exe_path = "\\".join([os.getcwd(), exe_path])
-        
+
         # runs the exe as a daemon process
         subprocess.Popen([exe_path])
-    
+
     def disconnect(self):
         # sends the server "bye" to notify disconnection
         self.lock.acquire()
@@ -153,30 +172,32 @@ class client:
 
         # close the main socket of the client
         self.main_socket.close()
-        
+
     def run(self):
         try:
             while not DISCONNECTING:
                 info = self.main_socket.recv(4096).decode()
-                if info == 'hardware':
+                print(info)
+                if info == "hardware":
                     data = snmp_server.get_hardware_info()
-                elif info == 'users':
-                    data =snmp_server.get_users_info()
-                elif info == 'net':
+                elif info == "users":
+                    data = snmp_server.get_users_info()
+                elif info == "net":
                     data = snmp_server.get_network_info()
-                elif info == 'connections':
+                elif info == "connections":
                     data = snmp_server.get_connections_info()
-                elif info == 'running processes':
+                elif info == "running processes":
                     data = snmp_server.get_processes_info()
                 else:
                     data = snmp_server.get_drives_info()
                 data = json.dumps(data).encode()
-                
-                # Calculate the number of packets required
-                total_packets = (len(data) // 1064) + 1
 
+                self.main_socket.send(data)
+                """# Calculate the number of packets required
+                total_packets = (len(data) // 1064) + 1
+                print(total_packets)
                 # Send the total number of packets
-                self.main_socket.send(str(total_packets).zfill(4).encode())
+                self.main_socket.send(str(total_packets).encode())
 
                 # Send the data packets
                 for packet_number in range(total_packets):
@@ -184,30 +205,32 @@ class client:
                     end_index = (packet_number + 1) * 1064
                     packet_data = data[start_index:end_index]
                     self.main_socket.send(packet_data)
+                    print('sent packet')"""
 
         except Exception as e:
+            print(e, "196")
             global THREAD_ALIVE
             THREAD_ALIVE = False
             self.main_socket.close()
-            print('disconnect')
+            print("disconnect")
 
     def write_settings_file(self, settings_data):
-        with open('Admin_settings.txt', 'w') as file:
+        with open("Admin_settings.txt", "w") as file:
             file.write("max_cpu:{}\n".format(settings_data["max_cpu"]))
             file.write("max_cpu_temp:{}\n".format(settings_data["max_cpu_temp"]))
             file.write("max_mem:{}\n".format(settings_data["max_mem"]))
-            
+
             file.write("\nforbidden_processes:\n")
             for process in settings_data["forbidden_processes"]:
-                file.write('{}\n'.format(process))
-            
+                file.write("{}\n".format(process))
+
             file.write("\nemail:{}\n".format(settings_data["email"]))
-            
+
     def get_settings_file(self):
         settings_data = {}
 
         try:
-            with open('Admin_settings.txt', 'r') as file:
+            with open("Admin_settings.txt", "r") as file:
                 lines = file.readlines()
 
                 for line in lines:
@@ -221,12 +244,12 @@ class client:
                         settings_data["max_mem"] = int(line.split(":")[1])
                     elif line == "forbidden_processes:":
                         settings_data["forbidden_processes"] = []
-                    elif line.endswith('.exe'):
+                    elif line.endswith(".exe"):
                         settings_data["forbidden_processes"].append(line.strip('"'))
                     elif line.startswith("email:"):
                         settings_data["email"] = line.split(":")[1].strip()
         except FileNotFoundError:
-            return ''
+            return ""
 
         return settings_data
 
@@ -235,30 +258,51 @@ class client:
         temp = snmp_server.get_cpu_temp()
         mem = snmp_server.get_virtual_mem()
         processes = snmp_server.get_processes_info()
-        
-        msg = ''
-        if cpu > self.admin_settings['max_cpu'] and time.time() - TIME_TRACKER['cpu'] > TIME_BETWEEN_EMAILS:
-            msg += "This computer's cpu usage is above the limit, it is {}%\n".format(cpu)
-            
-        if temp > self.admin_settings['max_cpu_temp'] and time.time() - TIME_TRACKER['temp'] > TIME_BETWEEN_EMAILS:
-            msg += "This computer's cpu temprature usage is above the limit, it is {}\n".format(temp)
-            
-        if mem > self.admin_settings['max_mem'] and time.time() - TIME_TRACKER['mem'] > TIME_BETWEEN_EMAILS:
-            msg += "This computer's virtual memory is above the limit, it is {}%\n".format(mem)
-            
+
+        msg = ""
+        if (
+            cpu > self.admin_settings["max_cpu"]
+            and time.time() - TIME_TRACKER["cpu"] > TIME_BETWEEN_EMAILS
+        ):
+            msg += "This computer's cpu usage is above the limit, it is {}%\n".format(
+                cpu
+            )
+
+        if (
+            temp > self.admin_settings["max_cpu_temp"]
+            and time.time() - TIME_TRACKER["temp"] > TIME_BETWEEN_EMAILS
+        ):
+            msg += "This computer's cpu temprature usage is above the limit, it is {}\n".format(
+                temp
+            )
+
+        if (
+            mem > self.admin_settings["max_mem"]
+            and time.time() - TIME_TRACKER["mem"] > TIME_BETWEEN_EMAILS
+        ):
+            msg += (
+                "This computer's virtual memory is above the limit, it is {}%\n".format(
+                    mem
+                )
+            )
+
         forbidden_processes_detected = set()  # Track detected forbidden processes
-        if time.time() - TIME_TRACKER['forbidden_processes'] > TIME_BETWEEN_EMAILS:
-            for forbidden_process in self.admin_settings['forbidden_processes']:
+        if time.time() - TIME_TRACKER["forbidden_processes"] > TIME_BETWEEN_EMAILS:
+            for forbidden_process in self.admin_settings["forbidden_processes"]:
                 for process in processes:
                     if process["name"] == forbidden_process:
                         if forbidden_process not in forbidden_processes_detected:
-                            msg += "This computer is running a process you defined as forbidden - {}\n".format(process["name"])
+                            msg += "This computer is running a process you defined as forbidden - {}\n".format(
+                                process["name"]
+                            )
                             forbidden_processes_detected.add(forbidden_process)
-                            
-        if msg != '':
-            if len(forbidden_processes_detected)>0:
+
+        if msg != "":
+            if len(forbidden_processes_detected) > 0:
                 df = pd.DataFrame(processes)
-                file_name = f"processes of {socket.gethostbyname(socket.gethostname())}.xlsx"
+                file_name = (
+                    f"processes of {socket.gethostbyname(socket.gethostname())}.xlsx"
+                )
                 df.to_excel(file_name, index=False)
                 self.send_email(msg, file_name)
                 os.remove(file_name)
@@ -266,16 +310,19 @@ class client:
                 self.send_email(msg)
 
     def send_email(self, message, attachment_path=None):
-        print('preparing email')
-        message = f'Hi, this is a notification regardint the computer {socket.gethostbyname(socket.gethostname())} in your system\n' + message
+        print("preparing email")
+        message = (
+            f"Hi, this is a notification regardint the computer {socket.gethostbyname(socket.gethostname())} in your system\n"
+            + message
+        )
         port = 465  # For SSL
         smtp_server = "smtp.gmail.com"
 
         # Create the email message
         msg = MIMEMultipart()
         msg["From"] = NV_EMAIL
-        msg["To"] = self.admin_settings['email']
-        msg["Subject"] = 'NETVIGILANT Notification'
+        msg["To"] = self.admin_settings["email"]
+        msg["Subject"] = "NETVIGILANT Notification"
 
         # Attach the message content
         msg.attach(MIMEText(message, "plain"))
@@ -297,8 +344,8 @@ class client:
         context = ssl.create_default_context()
         with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
             server.login(NV_EMAIL, NV_PASSWORD)
-            server.sendmail(NV_EMAIL, self.admin_settings['email'], msg.as_string())
-        print('sent')
+            server.sendmail(NV_EMAIL, self.admin_settings["email"], msg.as_string())
+        print("sent")
+
 
 c = client()
-

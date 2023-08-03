@@ -3,9 +3,9 @@ Hello!
 This is a file where you want to put some basic admin settings to allow some of this programs features!
 If you want there to be checks on the cpu usage, cpu temprature and memory of the computers in your system, please insert the max amount of these parameters here! There are defult values already in, if you wish to have different ones please change it!
 
-max_cpu:70
+max_cpu:0
 max_cpu_temp:90
-max_mem:50
+max_mem:0
 
 If you want to declare forbiden processes and get a notification when they run on the computers in your system, make sure to write them here in this way
 "process 1"
@@ -18,4 +18,4 @@ forbidden_processes:
 
 If you want to get notified when one of the computers in your system breaks the rules you just inserted, enter your email address in the quotation marks!
 
-email:"user"
+email:"shelly3278@gmail.com"
